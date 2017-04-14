@@ -1,0 +1,22 @@
+#include <limits.h>
+#include <float.h>
+#include <stdio.h>
+
+int main(int argc, char **argv) {
+  
+  printf( "\n" );
+  printf( "signed char:    %4d - %4d\n", SCHAR_MIN, SCHAR_MAX );
+  printf( "unsigned char:  %4u - %4u\n", 0, UCHAR_MAX );
+  printf( "\n" );
+  printf( "signed short:   %6d - %6d\n", SHRT_MIN, SHRT_MAX );
+  printf( "unsigned short: %6u - %6u\n", 0, USHRT_MAX );
+  printf( "\n" );
+  printf( "signed int:   %11d - %11d\n", INT_MIN, INT_MAX );
+  printf( "unsigned int: %11u - %11u\n", 0, UINT_MAX );
+  printf( "\n" );
+  printf( "signed long:   %20ld - %20ld\n", LONG_MIN, LONG_MAX );
+  printf( "unsigned long: %20u - %20lu\n", 0, ULONG_MAX );
+  
+  return 0;
+}
+

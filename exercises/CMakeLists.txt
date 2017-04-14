@@ -3,5 +3,6 @@ project(c_tests LANGUAGES C)
 
 add_executable(1-19 1-19.c)
 add_executable(1-22 1-22.c)
+add_executable(2-1 2-1.c)
 
-install(TARGETS 1-19 1-22 RUNTIME DESTINATION bin)
+install(TARGETS 1-19 1-22 2-1 RUNTIME DESTINATION bin)

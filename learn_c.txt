@@ -1,0 +1,21 @@
+automatic variables are local vars, that are created when the function is called, and destroyed when the function exits
+  `static` makes such a variable keep its value between calls
+global vars are _defined_ exactly once, outside of any function
+  defining allocates storage for the var
+global vars must be _declared_ in each function that want to access them
+  can be explicit: extern char c;
+  or implicit, if the global var is _defined_ in the source file before it's used
+    common practice: put all definitions of global vars in headers
+  if var is defined in another .c file, it must be declared `extern` explicitly
+    functions define in another .c file must also be declared `extern`, but they're already that implicitly
+
+variables shouldn't be named to start with `_`, as libraries use that convention
+types:
+  char // byte
+  int // natural size of integers in the host machine; at least 16 bits
+  float // single precision float
+  [long] double // double precision float
+  short [int] // at least 16 bits
+  long [int] // at least 32 bits
+all the char and int types can be `unsigned`
+
