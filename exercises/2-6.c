@@ -2,14 +2,15 @@
 
 unsigned char setbits( unsigned char toBits, int pos, int numBits, unsigned char fromBits ) {
   
+  unsigned char leftShift = pos - numBits;
   unsigned char movedBits = ~( ~0 << numBits ) & fromBits;
-  unsigned char mask = ~( ~0 << numBits ) << pos - numBits;
+  unsigned char mask = ~( ~0 << numBits ) << leftShift;
   unsigned char ret = toBits;
 
   // Clear area for moved bits
   ret = ret & ~mask;
   // Move bits
-  ret = ret | ( movedBits << pos - numBits );
+  ret = ret | ( movedBits << leftShift );
 
   return ret;
 }
@@ -19,6 +20,13 @@ unsigned char invert( unsigned char bits, int pos, int numBits ) {
   unsigned char mask = ~( ~0 << numBits ) << pos - numBits;
   
   return bits ^ mask;
+}
+
+unsigned char rightrot( unsigned char bits, int numBits ) {
+
+  unsigned char ret = bits;
+  
+  return ret;
 }
 
 void print_bits( unsigned char num ) {
@@ -62,6 +70,17 @@ int main(int argc, char **argv) {
   bits = invert( bits, 4, 2 );
   printf( "After:  " );
   print_bits( bits );
+  printf( "\n\n" );
+  
+  // Exercise 2-8
+  
+  printf( "Before: " );
+  unsigned char bitsForRot = 255;
+  print_bits( bitsForRot );
+  printf( "\n" );
+  bitsForRot = rightrot( bitsForRot, 2 );
+  printf( "After:  " );
+  print_bits( bitsForRot );
   printf( "\n\n" );
   
   return 0;
