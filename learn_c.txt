@@ -91,3 +91,8 @@ bitwise operators can only be used on integer types (signed or unsigned)
 << // left-shifting always right-pads with 0
 >> // right-shifting always left-pads unsigneds with 0, and either pads signeds with 0 ("logical shift") or with the sign bit ("arithmetic shift") machine-dependently
 
+the operands of an expression with the operators &&, ||, ?: and , are guaranteed to be evaluated left-to-right
+the evaluation order for other operands is NOT guaranteed
+  therefore this might cause problems: foo(++n, n); // second argument might be n or n+1
+  also problematic: a[i] = i++;
+
