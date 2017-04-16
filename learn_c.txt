@@ -84,3 +84,10 @@ when a char is converted to int, it can result in a negative or positive value
   therefore ALWAYS set char explicitly to signed or unsigned, when a char is used for arbitrary bit patterns (i.e. non-char data, e.g. as a small int)
 the conditional operators (||, &&, >, <, etc.) return 0 or 1
 casting uses the same conversion rules: (unsigned long) -1L;
+
+bitwise operators can only be used on integer types (signed or unsigned)
+^ // exclusive or
+~ // one's complement (i.e. inverts all bits)
+<< // left-shifting always right-pads with 0
+>> // right-shifting always left-pads unsigneds with 0, and either pads signeds with 0 ("logical shift") or with the sign bit ("arithmetic shift") machine-dependently
+
