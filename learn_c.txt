@@ -18,4 +18,69 @@ types:
   short [int] // at least 16 bits
   long [int] // at least 32 bits
 all the char and int types can be `unsigned`
+float and double can have larger absolute values than integers, when both have the same number of bits, but with less precision
+  http://stackoverflow.com/questions/11158476/why-do-float-and-int-have-such-different-maximum-values-even-though-theyre-the
+  floats and doubles lose precision with large numbers even before the decimal point
+constants/literals:
+  1234 // int
+  123456789l or 123456789L // long; literals too big to fit in an int are also implicitly long
+  123456789u or 123456789U // unsigned
+  123.4 // double
+  1e-2 // double
+  123.4f or 123.4F // float
+  123.4l or 123.4L // long double
+  01234 // octal, i.e. base-8
+  0x1234 or 0X1234 // hex, i.e. base-16
+  0xFUL // unsigned long with value 15 in decimal
+  'a' // int
+  '\123' // int from octal value
+  '\x6F' // int from hex value
+  "bla" // string literal with trailing '\0'
+constant expressions contain only constants/literals, and can be eval'd at compile time
+stdlib's strlen() (in string.h) returns the length _without_ the trailing '\0'
+concatenation: "some string" "another string"
+enum:
+  enum boolean { NO, YES } // values 0 and 1
+  enum chars { BELL = '\a', TAB = '\t', CHAR_A = 'a' }
+  enum months { JAN = 1, FEB, MAR } // unspecified values continue counting up from the last specified value
+  names in different enums must be distinct, but values don't, even in the same enum
+
+all vars must be declared before use:
+  int i;
+  char c;
+var can be initialized in the decl, with an expression:
+  int i = INT_MAX - 1;
+  char c = 'a';
+non-automatic vars are initialized once, before program starts executing
+automatic vars are initialized each time the function is called
+_external_ and _static_ vars without explicit initializers are initialized to 0 by default
+_automatic_ vars without explicit initializers are initialized to undefined (i.e. garbage) by default
+guideline: if it incurs a runtime performance cost, a var is not initialized to 0, but undefined, by default
+`const` can be added to any decl
+  for an array this means that the elements won't be altered
+  parameters can also have const: void foo(const arr[])
+  what happens when changing a const var is attempted is _implementation-defined_
+
+the modulus operator % can only be applied on integers, not floats
+using % or / on negative values results in _machine-dependent_ sign of the result and truncation (towards 0 or away from it); DON'T use these on negative values in C89
+  c99 defined truncation to always be towards 0 for negative values
+  http://stackoverflow.com/a/29179586
+  http://python-history.blogspot.fi/2010/08/why-pythons-integer-division-floors.html
+operator precedence table: http://en.cppreference.com/w/c/language/operator_precedence
+
+in general, the only automatic conversions convert from narrower type to wider type
+  exception: float is not converted to double
+converting from wide to narrow (i.e. from int to char) is not illegal, but compiler might show a warning
+converting between unsigned and signed is machine-dependent, because it depends on the sizes of types. if int is 16 bits and long is 32 bits:
+  -1L < 1U // 1U is converted to signed long
+    appendix A6.5: "...the effect depends on whether a long int can represent all values of an unsigned int..."
+  -1L > 1UL // -1L is converted to unsigned long; its bit pattern makes it look like a large positive int
+    appendix A6.5: "if either operation is unsigned long int, the other is converted to unsigned long it"
+conversion also happens in function calls, if the parameter type is different than the argument type
+DON'T mix signed and unsigned types
+appendix section A6 lists all conversion rules
+when a char is converted to int, it can result in a negative or positive value
+  char in C is signed or unsigned, depending on implementation
+  therefore ALWAYS set char explicitly to signed or unsigned, when a char is used for arbitrary bit patterns (i.e. non-char data, e.g. as a small int)
+the conditional operators (||, &&, >, <, etc.) return 0 or 1
 
