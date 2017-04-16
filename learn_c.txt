@@ -83,4 +83,4 @@ when a char is converted to int, it can result in a negative or positive value
   char in C is signed or unsigned, depending on implementation
   therefore ALWAYS set char explicitly to signed or unsigned, when a char is used for arbitrary bit patterns (i.e. non-char data, e.g. as a small int)
 the conditional operators (||, &&, >, <, etc.) return 0 or 1
-
+casting uses the same conversion rules: (unsigned long) -1L;
