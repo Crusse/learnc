@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <limits.h>
 
 unsigned char setbits( unsigned char toBits, int pos, int numBits, unsigned char fromBits ) {
   
@@ -23,15 +24,12 @@ unsigned char invert( unsigned char bits, int pos, int numBits ) {
 }
 
 unsigned char rightrot( unsigned char bits, int numBits ) {
-
-  unsigned char ret = bits;
-  
-  return ret;
+  return ( bits >> numBits ) | ( bits << ( sizeof( bits ) * CHAR_BIT - numBits ) );
 }
 
 void print_bits( unsigned char num ) {
 
-  for ( int i = sizeof( num ) * 8; i >= 0; --i ) {
+  for ( int i = sizeof( num ) * CHAR_BIT - 1; i >= 0; --i ) {
     printf( "%d", ( num >> i ) & 1 );
   }
 }
@@ -75,7 +73,7 @@ int main(int argc, char **argv) {
   // Exercise 2-8
   
   printf( "Before: " );
-  unsigned char bitsForRot = 255;
+  unsigned char bitsForRot = 6;
   print_bits( bitsForRot );
   printf( "\n" );
   bitsForRot = rightrot( bitsForRot, 2 );
