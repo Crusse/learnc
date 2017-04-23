@@ -8,5 +8,7 @@ add_executable(2-3 2-3.c)
 add_executable(2-4 2-4.c)
 add_executable(2-6 2-6.c)
 add_executable(2-9 2-9.c)
+add_executable(3-2 3-2.c)
+add_executable(3-3 3-3.c)
 
-install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 RUNTIME DESTINATION bin)
+install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 RUNTIME DESTINATION bin)
