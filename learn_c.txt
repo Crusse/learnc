@@ -67,6 +67,7 @@ using % or / on negative values results in _machine-dependent_ sign of the resul
   http://stackoverflow.com/a/29179586
   http://python-history.blogspot.fi/2010/08/why-pythons-integer-division-floors.html
 operator precedence table: http://en.cppreference.com/w/c/language/operator_precedence
+in C, unary plus won't change a negative value into a positive value
 
 in general, the only automatic conversions convert from narrower type to wider type
   exception: float is not converted to double
@@ -95,4 +96,15 @@ the operands of an expression with the operators &&, ||, ?: and , are guaranteed
 the evaluation order for other operands is NOT guaranteed
   therefore this might cause problems: foo(++n, n); // second argument might be n or n+1
   also problematic: a[i] = i++;
+
+each 1-bit represents a power of two:
+  0001: 1
+  0010: 2
+  0100: 4
+  1000: 8
+in hex (e.g. in printf("%x\n", 8)) a single character represents 4 bits (2^4)
+  4 bits is "a nibble" (half of a byte)
+  0x08: 8
+  0x0F: 15
+  0xFF: 255
 
