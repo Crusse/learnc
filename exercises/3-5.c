@@ -22,12 +22,6 @@ void itob( int num, int base, char *retStr ) {
   int sign = num;
   int carry = 0;
 
-  // Special case, as abs(INT_MIN) == INT_MAX + 1
-  if ( num == INT_MIN ) {
-    num += base;
-    carry = 1;
-  }
-
   // Base is too large
   if ( base < 2 || base > NUM_CHARS_LENGTH ) {
     retStr[ 0 ] = 'N';
@@ -35,6 +29,12 @@ void itob( int num, int base, char *retStr ) {
     retStr[ 2 ] = 'N';
     retStr[ 3 ] = '\0';
     return;
+  }
+
+  // Special case, as abs(INT_MIN) == INT_MAX + 1
+  if ( num == INT_MIN ) {
+    num += base;
+    carry = 1;
   }
 
   if ( sign < 0 )
@@ -97,6 +97,15 @@ int main(int argc, char **argv) {
   printf( "%s\n", str );
   
   itob( num, 64, str );
+  printf( "%s\n", str );
+
+  printf( "\n" );
+
+  itob( 15, 16, str );
+  printf( "%s\n", str );
+  itob( 256 * 256 * 256 - 1, 16, str );
+  printf( "%s\n", str );
+  itob( 100, 16, str );
   printf( "%s\n", str );
 
   printf( "\n" );
