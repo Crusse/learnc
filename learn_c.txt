@@ -62,12 +62,13 @@ guideline: if it incurs a runtime performance cost, a var is not initialized to 
   what happens when changing a const var is attempted is _implementation-defined_
 
 the modulus operator % can only be applied on integers, not floats
-using % or / on negative values results in _machine-dependent_ sign of the result and truncation (towards 0 or away from it); DON'T use these on negative values in C89
+using % on negative values results in _machine-dependent_ sign of the result, and using / results truncation towards 0 or away from it; DON'T use these on negative values in C89
   c99 defined truncation to always be towards 0 for negative values
   http://stackoverflow.com/a/29179586
   http://python-history.blogspot.fi/2010/08/why-pythons-integer-division-floors.html
 operator precedence table: http://en.cppreference.com/w/c/language/operator_precedence
 in C, unary plus won't change a negative value into a positive value
+  edit: neither does it in JS or PHP
 
 in general, the only automatic conversions convert from narrower type to wider type
   exception: float is not converted to double
@@ -76,7 +77,7 @@ converting between unsigned and signed is machine-dependent, because it depends 
   -1L < 1U // 1U is converted to signed long
     appendix A6.5: "...the effect depends on whether a long int can represent all values of an unsigned int..."
   -1L > 1UL // -1L is converted to unsigned long; its bit pattern makes it look like a large positive int
-    appendix A6.5: "if either operation is unsigned long int, the other is converted to unsigned long it"
+    appendix A6.5: "if either operation is unsigned long int, the other is converted to unsigned long int"
 conversion also happens in function calls, if the parameter type is different than the argument type
 DON'T mix signed and unsigned types
 appendix section A6 lists all conversion rules

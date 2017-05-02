@@ -23,9 +23,9 @@ void itoa( int n, char str[] ) {
   // again, when 'n' is an int. INT_MAX == -(INT_MIN + 1).
   // Note: unary plus doesn't seem to turn a negative integer into a positive
   // integer in C.
-  printf( "-(%d) = 0x%x\n", n, -n );
+  printf( "// -(%d) = 0x%x\n", n, -n );
   // Taking one's complement of -n (i.e. INT_MIN) gives +n - 1 (i.e. INT_MAX)
-  printf( "~(%d) = 0x%x (%d)\n", n, ~n, ~n );
+  printf( "// ~(%d) = 0x%x (%d)\n", n, ~n, ~n );
   
   do {
     

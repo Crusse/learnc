@@ -11,5 +11,8 @@ add_executable(2-9 2-9.c)
 add_executable(3-2 3-2.c)
 add_executable(3-3 3-3.c)
 add_executable(3-4 3-4.c)
+add_executable(3-5 3-5.c)
 
-install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 RUNTIME DESTINATION bin)
+set_property(DIRECTORY PROPERTY C_STANDARD 90)
+
+install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 RUNTIME DESTINATION bin)
