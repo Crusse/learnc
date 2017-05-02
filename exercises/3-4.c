@@ -14,7 +14,8 @@ void reverse( char str[] ) {
   }
 }
 
-void itoa( int n, char str[] ) {
+// The third parameter is for exercise 3-6
+void itoa( int n, char str[], int minWidth ) {
   
   int sign = n;
   int i = 0;
@@ -56,6 +57,9 @@ void itoa( int n, char str[] ) {
   
   if ( sign < 0 )
     str[ i++ ] = '-';
+
+  for ( int j = minWidth - i; j > 0; --j )
+    str[ i++ ] = ' ';
   
   str[ i ] = '\0';
   
@@ -66,21 +70,21 @@ int main(int argc, char **argv) {
   
   char str[ 100 ] = "";
 
-  itoa( 1239, str );
-  printf( "itoa(1239) (0x%x): %s\n\n", 1239, str );
+  itoa( 1239, str, 10 );
+  printf( "itoa(1239) (0x%x):\n%s\n\n", 1239, str );
 
-  itoa( 0, str );
-  printf( "itoa(0) (0x%x): %s\n\n", 0, str );
+  itoa( 0, str, 10 );
+  printf( "itoa(0) (0x%x):\n%s\n\n", 0, str );
 
-  itoa( -1, str );
-  printf( "itoa(-1) (0x%x): %s\n\n", -1, str );
+  itoa( -1, str, 10 );
+  printf( "itoa(-1) (0x%x):\n%s\n\n", -1, str );
 
   // INT_MAX is binary 0111...
-  itoa( INT_MAX, str );
-  printf( "itoa(INT_MAX) (0x%x): %s\n\n", INT_MAX, str );
+  itoa( INT_MAX, str, 10 );
+  printf( "itoa(INT_MAX) (0x%x):\n%s\n\n", INT_MAX, str );
   
   // INT_MIN is binary 1000...
-  itoa( INT_MIN, str );
-  printf( "itoa(INT_MIN) (0x%x): %s\n\n", INT_MIN, str );
+  itoa( INT_MIN, str, 10 );
+  printf( "itoa(INT_MIN) (0x%x):\n%s\n\n", INT_MIN, str );
 }
 
