@@ -21,30 +21,38 @@ void itoa( int n, char str[] ) {
   
   // When we try to make 'n' positive, -INT_MIN loops around to be INT_MIN
   // again, when 'n' is an int. INT_MAX == -(INT_MIN + 1).
-  // Note: unary plus doesn't seem to turn a negative integer into a positive
-  // integer in C.
+  // Note: unary plus doesn't turn a negative integer into a positive
+  // integer in C (nor in JS or PHP).
   printf( "// -(%d) = 0x%x\n", n, -n );
   // Taking one's complement of -n (i.e. INT_MIN) gives +n - 1 (i.e. INT_MAX)
   printf( "// ~(%d) = 0x%x (%d)\n", n, ~n, ~n );
-  
-  do {
-    
-    // Solution to exercise 3-4: we turn negative values into positive values
-    // per digit in n, rather than turning the whole value of n into a positive
-    // value at the start of the function. This ensures that INT_MIN gets
-    // printed properly, because we always have enough space in 'digit' for any
-    // complement of a negative value. On the other hand, if we turned n from
-    // negative to positive at the start of the function, the complement of
-    // INT_MIN would be INT_MIN, because in a two's complement system
-    // abs(INT_MIN) == INT_MAX + 1.
-    int digit = n % 10;
-    if ( digit < 0 )
-      digit = -digit;
-    
-    str[ i++ ] = digit + '0';
+
+  // We can't turn INT_MIN to -INT_MIN, because -INT_MIN == INT_MIN in a two's
+  // complement system. INT_MAX has space for one less non-zero values than INT_MIN,
+  // because abs(INT_MIN) == INT_MAX + 1.
+  if ( n == INT_MIN ) {
+    // Example: n = -210
+    n += 10; // -209
+    n = -n;  // 209
+    str[ i++ ] = n % 10 + '0';
+    n /= 10; // 20
+    n += 1; // 21
+  }
+  else {
+    // In C89 negative integers will truncate to implementation-dependent
+    // direction, e.g. -19/10 will be -1 or -2. That's why we must make sure
+    // that n is a positive integer before dividing. In C99 it's always
+    // truncated towards zero.
+    if ( sign < 0 )
+      n = -n;
+    str[ i++ ] = n % 10 + '0';
     n /= 10;
   }
-  while ( n != 0 );
+  
+  while ( n != 0 ) {
+    str[ i++ ] = n % 10 + '0';
+    n /= 10;
+  }
   
   if ( sign < 0 )
     str[ i++ ] = '-';
@@ -58,8 +66,14 @@ int main(int argc, char **argv) {
   
   char str[ 100 ] = "";
 
-  itoa( 1234, str );
-  printf( "itoa(1234) (0x%x): %s\n\n", 1234, str );
+  itoa( 1239, str );
+  printf( "itoa(1239) (0x%x): %s\n\n", 1239, str );
+
+  itoa( 0, str );
+  printf( "itoa(0) (0x%x): %s\n\n", 0, str );
+
+  itoa( -1, str );
+  printf( "itoa(-1) (0x%x): %s\n\n", -1, str );
 
   // INT_MAX is binary 0111...
   itoa( INT_MAX, str );
