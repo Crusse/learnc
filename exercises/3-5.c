@@ -95,6 +95,9 @@ int main(int argc, char **argv) {
   
   itob( num, 32, str );
   printf( "%s\n", str );
+
+  itob( num, NUM_CHARS_LENGTH, str );
+  printf( "%s\n", str );
   
   itob( num, 64, str );
   printf( "%s\n", str );
