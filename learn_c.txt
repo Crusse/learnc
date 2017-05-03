@@ -109,3 +109,13 @@ in hex (e.g. in printf("%x\n", 8)) a single character represents 4 bits (2^4)
   0x0F: 15
   0xFF: 255
 
+C allows a function declaration to omit the argument list (for backwards compatibility), even if the definition has arguments
+  int foo();
+  int main() { foo( 123, 456 ); }
+  int foo( int a ) { printf("%d", a); }
+  ^ this compiles without errors. to make the compiler output an error, use `void`: int foo(void);
+    therefore all empty argument lists should have `void` in the declaration (for compile-time checking)
+
+by default, external variables (i.e. those _defined_ outside of functions) and functions have "external linkage"
+  this means that function even in other .c files (i.e. "compilation units") can access those vars and functions
+
