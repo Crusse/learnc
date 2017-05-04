@@ -145,3 +145,23 @@ contrary to `extern`, `static` will limit a var's or function's scope to only th
   can only be used in automatic vars and parameters
   you cannot take the address of a `register` var
 
+#defines can span multiple lines, if you put `\` at the end of the line
+scope of a #define is from the point of definition to the end of the compiled file
+substitutions are only made for tokens:
+  #define YES something
+  printf("YES") // not substituted
+  foo(YESMAN) // not substituted
+  foo(YES) // is substituted
+any replacement text is allowed:
+  #define infinite_loop while(1)
+allows for arguments:
+  #define max(A, B) ((A) > (B) ? (A) : (B))
+  this is dangerous, as the args are evaluated twice, so max(i++, j++) would give non-intuitive results
+#defines can be removed with #undef
+preceding a parameter name with `#` wraps it with quotes:
+  #define printdebug(expr) printf("Debug: " #expr "\n")
+  escaping is automatic: in `expr` the " char is replaced with \" and the \ char with \\
+## does concatenation of the macro arguments
+  #define baz(foo, bar) foo ## bar
+  ^ results in `foobar`, because the ## operator replaces whitespace around it
+
