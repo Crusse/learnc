@@ -164,4 +164,8 @@ preceding a parameter name with `#` wraps it with quotes:
 ## does concatenation of the macro arguments
   #define baz(foo, bar) foo ## bar
   ^ results in `foobar`, because the ## operator replaces whitespace around it
+a #define is also expanded inside any following #define
+  #define FOO "foo"
+  #define FOOBAR FOO "bar"
+  printf(FOOBAR);
 
