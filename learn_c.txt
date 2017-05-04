@@ -119,3 +119,8 @@ C allows a function declaration to omit the argument list (for backwards compati
 by default, external variables (i.e. those _defined_ outside of functions) and functions have "external linkage"
   this means that function even in other .c files (i.e. "compilation units") can access those vars and functions
 
+you cannot declare a new variable in a switch-case statement, because the `case` is only a label
+  "error: a label can only be part of a statement and a declaration is not a statement"
+  REMEMBER: C has block scope, so you can create a new scope in the `case` with {}
+  http://stackoverflow.com/questions/92396/why-cant-variables-be-declared-in-a-switch-statement
+  http://stackoverflow.com/questions/2759371/in-c-do-braces-act-as-a-stack-frame
