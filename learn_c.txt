@@ -168,4 +168,10 @@ a #define is also expanded inside any following #define
   #define FOO "foo"
   #define FOOBAR FOO "bar"
   printf(FOOBAR);
-
+conditionals:
+  #if // this can have any constant integer expression (but no `sizeof`, casts or enums)
+  #elif // as above
+  #else
+  #endif
+  #if defined(name)    is the same as    #ifdef(name)
+  #if !defined(name)    is the same as    #ifndef(name)
