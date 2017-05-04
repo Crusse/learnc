@@ -15,8 +15,9 @@ add_executable(3-5 3-5.c)
 add_executable(4-1 4-1.c)
 add_executable(4-2 4-2.c)
 add_executable(4-3 4-3.c)
+add_executable(4-12 4-12.c)
 
 # Make <math.h>'s fmod() work
 target_link_libraries(4-3 m)
 
-install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 RUNTIME DESTINATION bin)
+install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 4-12 RUNTIME DESTINATION bin)

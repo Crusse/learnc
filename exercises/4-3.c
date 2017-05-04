@@ -168,10 +168,11 @@ int _getline( char *str ) {
   return 0;
 }
 
-int sourcePointer = 0;
-
 // Exercise 4-10
 int getop(char source[], char opOut[]) {
+  
+  // Exercise 4-11
+  static int sourcePointer = 0;
   
   int chr = source[ sourcePointer ];
   
@@ -201,6 +202,7 @@ int getop(char source[], char opOut[]) {
     }
 
     if (chr == '.') {
+      opOut[ ++i ] = chr;
       while (isdigit(chr = source[ ++sourcePointer ]))
         opOut[++i] = chr;
     }

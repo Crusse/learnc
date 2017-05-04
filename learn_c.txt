@@ -52,14 +52,19 @@ var can be initialized in the decl, with an expression:
   int i = INT_MAX - 1;
   char c = 'a';
 non-automatic vars are initialized once, before program starts executing
+  the initializer for these can only be a constant-expression
 automatic vars are initialized each time the function is called
-_external_ and _static_ vars without explicit initializers are initialized to 0 by default
-_automatic_ vars without explicit initializers are initialized to undefined (i.e. garbage) by default
+  the initializer for automatic and `register` vars can be any expression (even function calls)
+external (outside functions) and static vars (inside functions) without explicit initializers are initialized to 0 by default
+automatic vars (i.e. non-static function vars) and `register` vars without explicit initializers are initialized to undefined (i.e. garbage) by default
 guideline: if it incurs a runtime performance cost, a var is not initialized to 0, but undefined, by default
 `const` can be added to any decl
   for an array this means that the elements won't be altered
   parameters can also have const: void foo(const arr[])
   what happens when changing a const var is attempted is _implementation-defined_
+arrays can be initialized with an initializer-list
+  char foo[] = {'b', 'a', 'r', '\0'}
+  if there are less initializers than the array size, the remaining values will be 0
 
 the modulus operator % can only be applied on integers, not floats
 using % on negative values results in _machine-dependent_ sign of the result, and using / results truncation towards 0 or away from it; DON'T use these on negative values in C89
@@ -124,4 +129,19 @@ you cannot declare a new variable in a switch-case statement, because the `case`
   REMEMBER: C has block scope, so you can create a new scope in the `case` with {}
   http://stackoverflow.com/questions/92396/why-cant-variables-be-declared-in-a-switch-statement
   http://stackoverflow.com/questions/2759371/in-c-do-braces-act-as-a-stack-frame
+
+the scope of an external var (i.e. var declared outside of function) and an external function ("extern" is the default) spans from the point where it is declared to the end of the file
+  this is why we need "forward-declaration" to access vars and functions further down in the same file
+  NOTE: you need `extern` to _declare_ a variable
+    int a; // this is a definition
+    extern int a; // this is a declaration
+external vars must be defined only once across all files, but can be declared multiple times
+  arrays need a size on definition, but not on declaration
+an external var can only be initialized in its definition
+contrary to `extern`, `static` will limit a var's or function's scope to only the file it's in
+`static` in a function makes the var retain its state across calls (works just like in PHP)
+  these are initialized only once, when the block is first entered
+`register` advises the compiler that the var will be heavily used. compiler might ignore this.
+  can only be used in automatic vars and parameters
+  you cannot take the address of a `register` var
 
