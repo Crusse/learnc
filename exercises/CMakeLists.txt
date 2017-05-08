@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.6)
 project(c_tests LANGUAGES C)
 
+if ( CMAKE_COMPILER_IS_GNUCC )
+  set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wall -pedantic")
+endif ( CMAKE_COMPILER_IS_GNUCC )
+if ( MSVC )
+  set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /W4")
+endif ( MSVC )
+
 add_executable(1-19 1-19.c)
 add_executable(1-22 1-22.c)
 add_executable(2-1 2-1.c)
@@ -17,8 +24,11 @@ add_executable(4-2 4-2.c)
 add_executable(4-3 4-3.c)
 add_executable(4-12 4-12.c)
 add_executable(4-13 4-13.c)
+add_executable(4-14 4-14.c)
+add_executable(5-1 5-1.c)
+add_executable(5-2 5-2.c)
 
 # Make <math.h>'s fmod() work
 target_link_libraries(4-3 m)
 
-install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 4-12 4-13 RUNTIME DESTINATION bin)
+install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 4-12 4-13 4-14 5-1 5-2 RUNTIME DESTINATION bin)

@@ -12,9 +12,9 @@ void expand( char *from, char *to ) {
   
   for ( int i = 0; c != '\0'; ++i, c = from[ i ] ) {
     
-    if ( c >= 'a' && c <= 'z' ||
-      c >= 'A' && c <= 'Z' ||
-      c >= '0' && c <= '9' )
+    if ( ( c >= 'a' && c <= 'z' ) ||
+      ( c >= 'A' && c <= 'Z' ) ||
+      ( c >= '0' && c <= '9' ) )
     {
       to[ toI++ ] = c;
       lastChar = c;
@@ -23,9 +23,9 @@ void expand( char *from, char *to ) {
       
       int endChar = from[ i + 1 ];
       
-      if ( lastChar >= 'a' && lastChar <= 'z' && endChar > lastChar && endChar <= 'z' ||
-        lastChar >= 'A' && lastChar <= 'Z' && endChar > lastChar && endChar <= 'Z' ||
-        lastChar >= '0' && lastChar <= '9' && endChar > lastChar && endChar <= '9' )
+      if ( ( lastChar >= 'a' && lastChar <= 'z' && endChar > lastChar && endChar <= 'z' ) ||
+        ( lastChar >= 'A' && lastChar <= 'Z' && endChar > lastChar && endChar <= 'Z' ) ||
+        ( lastChar >= '0' && lastChar <= '9' && endChar > lastChar && endChar <= '9' ) )
       {
         
         for ( int j = lastChar + 1; j <= endChar; ++j ) {

@@ -65,6 +65,9 @@ guideline: if it incurs a runtime performance cost, a var is not initialized to 
 arrays can be initialized with an initializer-list
   char foo[] = {'b', 'a', 'r', '\0'}
   if there are less initializers than the array size, the remaining values will be 0
+  NOTE: C forbids empty initializer braces; at least one initializer is required
+    int arr[10] = {}; // wrong, results in compiler warning; in C++ this would be ok
+    int arr[10] = {0}; // ok, initializes all elements to 0
 
 the modulus operator % can only be applied on integers, not floats
 using % on negative values results in _machine-dependent_ sign of the result, and using / results truncation towards 0 or away from it; DON'T use these on negative values in C89
@@ -147,13 +150,14 @@ contrary to `extern`, `static` will limit a var's or function's scope to only th
 
 #defines can span multiple lines, if you put `\` at the end of the line
 scope of a #define is from the point of definition to the end of the compiled file
-substitutions are only made for tokens:
+substitutions are only made for full tokens, not if the identifier is part of a longer token, string, or comment:
   #define YES something
   printf("YES") // not substituted
   foo(YESMAN) // not substituted
   foo(YES) // is substituted
+  modern C compilers allow unicode in the identifier: http://stackoverflow.com/questions/34319000/what-constitutes-a-valid-c-identifier
 any replacement text is allowed:
-  #define infinite_loop while(1)
+  #define infinite_loop while (1)
 allows for arguments:
   #define max(A, B) ((A) > (B) ? (A) : (B))
   this is dangerous, as the args are evaluated twice, so max(i++, j++) would give non-intuitive results
@@ -169,9 +173,17 @@ a #define is also expanded inside any following #define
   #define FOOBAR FOO "bar"
   printf(FOOBAR);
 conditionals:
-  #if // this can have any constant integer expression (but no `sizeof`, casts or enums)
+  #if // this can have any constant integer (not float) expression (but no `sizeof`, casts or enums)
   #elif // as above
   #else
   #endif
   #if defined(name)    is the same as    #ifdef(name)
   #if !defined(name)    is the same as    #ifndef(name)
+
+the `&` operator gives the address of a variable or an array element
+  it cannot be used on expressions, constants (i.e. literals like 1000.0L) and `register` vars
+the pointer operators & and * have higher precedence than arithmetic operators like +, /,  etc.
+  *ptr = *ptr + 1;
+  *ptr += 1;
+  ++*ptr;   // the unary operators associate right-to-left, and
+  (*ptr)++; // associate right-to-left; that's why postfix increment need parens
