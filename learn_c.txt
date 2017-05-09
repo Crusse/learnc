@@ -185,5 +185,40 @@ the `&` operator gives the address of a variable or an array element
 the pointer operators & and * have higher precedence than arithmetic operators like +, /,  etc.
   *ptr = *ptr + 1;
   *ptr += 1;
-  ++*ptr;   // the unary operators associate right-to-left, and
-  (*ptr)++; // associate right-to-left; that's why postfix increment need parens
+  ++*ptr;   // the unary operators associate right-to-left; that's why postfix increment needs parens...
+  (*ptr)++; // ...otherwise this would increment ptr, not the value pointed to by ptr
+
+int arr[10]; // defines a block of 10 _consecutive_ ints
+a value or an expression of type array will always decay into a pointer to the first element
+these result in the same array element:
+  val = arr[2]
+  val = *(arr + 2)
+  ptr = arr + 4;
+  val = *(ptr - 2)
+  val = ptr[-2];
+the subscript operator can be used with all pointers:
+  unsigned i = 256; // binary 00000000 00000000 00000001 00000000
+    on a little-endian machine the bytes will be stored from most-significant to least-significant, i.e. 00000000 00000001 00000000 00000000
+  unsigned char *cPtr = (unsigned char*) &i; // ptr to the first 8 bits of i
+  printf("%i\n", cPtr[1]); // prints 1, because it prints the second byte _in memory_ (on a little-endian machine)
+a pointer is a variable, but an array name is not. ptr++ is legal, but arr++ is not.
+the integer 0 can be assigned to a pointer, and 0 can be compared with a pointer
+  no other integer can be assigned to a pointer
+  NULL is defined in <stdio.h>
+two pointers can be compared with <, ==, <=, etc.
+  but only for pointers pointing to elements of the same array
+  NOTE: a pointer can also be compared to the address of the first element _past_ the end of the array. this is useful in iterating:
+    int arr[3] = {0};
+    int *onePastLast = &arr[3];
+    for ( int *p = arr; p != onePastLast; p++ ) ;
+subtracting two pointers gives the number of elements between them
+  an int might not be large enough for the signed value returned by this expression
+  NOTE: ptrdiff_t, a signed type defined in <stddef.h>, is large enough to hold the difference
+size_t: an unsigned type, that is returned by the sizeof operator
+REMEMBER: there is a difference between  char str[] = "bla"  and  char *str = "bla"
+  the chars in str[] can be mutated, but str can't point to any other string
+    str[]  is  {'b','l','a','0'}
+  trying to mutate the chars in *str is _undefined_, but str can be changed to point to some other string
+    *str ----> {'b','l','a','0'}
+    *str points to a string constant, possibly in the program's `.rodata` segment
+
