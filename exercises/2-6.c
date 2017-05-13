@@ -18,7 +18,7 @@ unsigned char setbits( unsigned char toBits, int pos, int numBits, unsigned char
 
 unsigned char invert( unsigned char bits, int pos, int numBits ) {
   
-  unsigned char mask = ~( ~0 << numBits ) << pos - numBits;
+  unsigned char mask = ~( ~0 << numBits ) << ( pos - numBits );
   
   return bits ^ mask;
 }
