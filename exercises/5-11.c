@@ -13,6 +13,10 @@ int main( int argc, char *argv[] ) {
   double operands[ STACK_MAX ] = { 0 };
   int opCount = 0;
 
+  // Skip the name of the program
+  argc--;
+  argv++;
+
   while ( argc > 0 ) {
 
     if ( strlen( *argv ) == 1 && !isdigit( **argv ) ) {

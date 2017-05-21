@@ -46,6 +46,12 @@ enum:
   enum chars { BELL = '\a', TAB = '\t', CHAR_A = 'a' }
   enum months { JAN = 1, FEB, MAR } // unspecified values continue counting up from the last specified value
   names in different enums must be distinct, but values don't, even in the same enum
+  you use enums just like defines, but enums have the advantage of being checked at compile-time
+  you can declare an enum type variable: enum months thisMonth = FEB;
+  var declarations can be done when declaring the enum type: 
+    enum months { JAN = 1, FEB, MAR } thisMonth, nextMonth;
+  you can cast: thisMonth = (enum months) FEB + 1;
+  the syntax of enums is borrowed from structs, so structs work similarly
 
 all vars must be declared before use:
   int i;
