@@ -1,3 +1,5 @@
+(a good place to copy the baseline for K&R exercises from: https://github.com/caisah/K-and-R-exercises-and-examples)
+
 automatic variables are local vars, that are created when the function is called, and destroyed when the function exits
   `static` makes such a variable keep its value between calls
 global vars are _defined_ exactly once, outside of any function
@@ -215,10 +217,38 @@ subtracting two pointers gives the number of elements between them
   an int might not be large enough for the signed value returned by this expression
   NOTE: ptrdiff_t, a signed type defined in <stddef.h>, is large enough to hold the difference
 size_t: an unsigned type, that is returned by the sizeof operator
-REMEMBER: there is a difference between  char str[] = "bla"  and  char *str = "bla"
+REMEMBER string mutability: there is a difference between  char str[] = "bla"  and  char *str = "bla"
   the chars in str[] can be mutated, but str can't point to any other string
     str[]  is  {'b','l','a','0'}
   trying to mutate the chars in *str is _undefined_, but str can be changed to point to some other string
     *str ----> {'b','l','a','0'}
     *str points to a string constant, possibly in the program's `.rodata` segment
+
+multi-dimensional array declaration:
+  int arr[ROWS][COLS];
+the first number of indexes can be ommitted, but not the next ones:
+  int arr[][COLS][FLOORS];
+  this also applies to arrays as function parameters
+initialization is done with nested curly braces:
+  int arr[][COLS] = {
+    { 1, 2, 3 },
+    { 4, 5, 6 }
+  };
+these are all equivalent:
+  func( int arr[2][8] );
+  func( int arr[][8] );
+  func( int (*arr)[8] ); // parens required because of precedence; otherwise this would be "an array to 8 pointers to int"
+NOTE the difference between these:
+  int arr[10][20]; // array of 10 arrays to 20 ints
+    allocates: 10 * 20 * sizeof(int)
+    sizeof( int [10][20] ) == 800
+  int *arr[10]; //    array of 10 pointers to int
+    allocates: 10 * sizeof(int*)
+    sizeof( int *[10] ) == 80
+  int (*arr)[20]; //  pointer to array of 20 ints
+    allocates: sizeof(int (*)[20]), which is just the size of the pointer, i.e. sizeof(int*)
+    sizeof( int (*)[20] ) == 8
+NOTE the difference between these:
+  char *arr[] = { "aaa", "bbb", "ccc" };    // each elem is 4 chars in size, but they cannot be mutated (see previous section for mutability)
+  char arr[][10] = { "aaa", "bbb", "ccc" }; // each elem is 10 chars in size, but they can be mutated
 

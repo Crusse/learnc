@@ -19,6 +19,19 @@ int main(void)
   char lines[ MAXLINES ][ MAXLEN ];
   int iterations = 5000000;
   
+  char *arr[] = { "aaa", "bbb", "ccc" };
+  char arr2[][10] = { "aaa", "bbb", "ccc" };
+  
+  arr[1][0] = 'd';
+  arr2[1][0] = 'd';
+  
+  printf( "%ld\n", sizeof( arr ) );
+  printf( "%ld\n", sizeof( arr2 ) );
+  
+  printf( "%ld\n", sizeof( int (*)[20] ) );
+  printf( "%ld\n", sizeof( int *[10] ) );
+  printf( "%ld\n", sizeof( int [10][20] ) );
+  
   float startTime = (float) clock() / CLOCKS_PER_SEC;
   for ( int i = 0; i < iterations; ++i ) {
     nlines = readlines(lineptr, MAXLINES);
