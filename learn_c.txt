@@ -251,4 +251,14 @@ NOTE the difference between these:
 NOTE the difference between these:
   char *arr[] = { "aaa", "bbb", "ccc" };    // each elem is 4 chars in size, but they cannot be mutated (see previous section for mutability)
   char arr[][10] = { "aaa", "bbb", "ccc" }; // each elem is 10 chars in size, but they can be mutated
-
+NOTE dereferencing:
+  int arr[10][20] = {
+    { 1, 2, 3 },
+    { 4, 5, 6 }
+  };
+  int num6 = *(*(arr + 1) + 2);
+IMPORTANT: when you use an array name in `sizeof` or take its address with `&`, the whole array object's size is used
+  int arr[10];
+  sizeof(arr); // returns the total number of bytes in the array, i.e. 10 * sizeof(int)
+  arr + 1; // returns pointer to 2nd element, because array decays to pointer to first _element_
+  &arr + 1; // returns pointer to space after the _whole_ array; `&` creates a pointer to the whole array, not an element
