@@ -85,9 +85,11 @@ using % on negative values results in _machine-dependent_ sign of the result, an
 operator precedence table: http://en.cppreference.com/w/c/language/operator_precedence
 in C, unary plus won't change a negative value into a positive value
   edit: neither does it in JS or PHP
+NOTE: unsigned integer overflow wraps around to 0; signed integer overflow results in undefined behavior
 
-in general, the only automatic conversions convert from narrower type to wider type
+NOTE: in general, the only automatic conversions convert from narrower type to wider type
   exception: float is not converted to double
+integral promotion: a char, short or bit-field (all signed or not) or enum, when used in expression expecting int, is converted to signed int, or if signed can't represent all values, unsigned
 converting from wide to narrow (i.e. from int to char) is not illegal, but compiler might show a warning
 converting between unsigned and signed is machine-dependent, because it depends on the sizes of types. if int is 16 bits and long is 32 bits:
   -1L < 1U // 1U is converted to signed long
@@ -95,13 +97,13 @@ converting between unsigned and signed is machine-dependent, because it depends 
   -1L > 1UL // -1L is converted to unsigned long; its bit pattern makes it look like a large positive int
     appendix A6.5: "if either operation is unsigned long int, the other is converted to unsigned long int"
 conversion also happens in function calls, if the parameter type is different than the argument type
-DON'T mix signed and unsigned types
+NOTE: DON'T mix signed and unsigned types
 appendix section A6 lists all conversion rules
 when a char is converted to int, it can result in a negative or positive value
-  char in C is signed or unsigned, depending on implementation
+  NOTE: char in C is signed or unsigned, depending on implementation
   therefore ALWAYS set char explicitly to signed or unsigned, when a char is used for arbitrary bit patterns (i.e. non-char data, e.g. as a small int)
 the conditional operators (||, &&, >, <, etc.) return 0 or 1
-casting uses the same conversion rules: (unsigned long) -1L;
+casting uses the same conversion rules
 
 bitwise operators can only be used on integer types (signed or unsigned)
 ^ // exclusive or
@@ -119,7 +121,7 @@ each 1-bit represents a power of two:
   0010: 2
   0100: 4
   1000: 8
-in hex (e.g. in printf("%x\n", 8)) a single character represents 4 bits (2^4)
+in hex (e.g. in printf("%x\n", 8)) a single character represents 4 bits (2^4 = 16)
   4 bits is "a nibble" (half of a byte)
   0x08: 8
   0x0F: 15
@@ -137,7 +139,7 @@ by default, external variables (i.e. those _defined_ outside of functions) and f
 
 you cannot declare a new variable in a switch-case statement, because the `case` is only a label
   "error: a label can only be part of a statement and a declaration is not a statement"
-  REMEMBER: C has block scope, so you can create a new scope in the `case` with {}
+  NOTE: C has block scope, so you can create a new scope in the `case` with {}
   http://stackoverflow.com/questions/92396/why-cant-variables-be-declared-in-a-switch-statement
   http://stackoverflow.com/questions/2759371/in-c-do-braces-act-as-a-stack-frame
 
@@ -197,6 +199,8 @@ the pointer operators & and * have higher precedence than arithmetic operators l
   (*ptr)++; // ...otherwise this would increment ptr, not the value pointed to by ptr
 
 int arr[10]; // defines a block of 10 _consecutive_ ints
+  the size of an array must be a constant expression
+  although C99 allows Variable-Length Arrays: https://stackoverflow.com/questions/16672322/malloced-array-vs-variable-length-array
 a value or an expression of type array will always decay into a pointer to the first element
 these result in the same array element:
   val = arr[2]
@@ -223,7 +227,7 @@ subtracting two pointers gives the number of elements between them
   an int might not be large enough for the signed value returned by this expression
   NOTE: ptrdiff_t, a signed type defined in <stddef.h>, is large enough to hold the difference
 size_t: an unsigned type, that is returned by the sizeof operator
-REMEMBER string mutability: there is a difference between  char str[] = "bla"  and  char *str = "bla"
+NOTE string mutability: there is a difference between  char str[] = "bla"  and  char *str = "bla"
   the chars in str[] can be mutated, but str can't point to any other string
     str[]  is  {'b','l','a','0'}
   trying to mutate the chars in *str is _undefined_, but str can be changed to point to some other string
