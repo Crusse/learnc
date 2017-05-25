@@ -41,7 +41,7 @@ int main( int argc, char *argv[] ) {
       }
     }
 
-    tail_limit_t argLimit = atol( limStr + 1 );
+    tail_limit_t argLimit = atoll( limStr + 1 );
     if ( argLimit > 0 )
       limit = argLimit;
   }
@@ -95,7 +95,15 @@ int main( int argc, char *argv[] ) {
         assert( lineCount <= ptrArrLen );
 
         if ( lineCount == ptrArrLen ) {
+          
+          // Reached the limits of our chosen integer type for lineLenMax
+          if ( (tail_limit_t)( ptrArrLen + LINEPTRS_INCREMENT ) <= ptrArrLen ) {
+            printf( "Exceeded maximum line count\n" );
+            return 1;
+          }
+          
           ptrArrLen += LINEPTRS_INCREMENT;
+          
           char **biggerLineArr = (char**) realloc( lines, ptrArrLen * sizeof( char* ) );
           if ( !biggerLineArr ) {
             printf( "Out of memory while allocating for line %llu in line list\n", seenLineCount );
@@ -132,7 +140,15 @@ int main( int argc, char *argv[] ) {
       assert( lineLen <= lineLenMax );
 
       if ( lineLen == lineLenMax ) {
+        
+        // Reached the limits of our chosen integer type for lineLenMax
+        if ( (tail_limit_t)( lineLenMax + LINE_LEN_INCREMENT ) <= lineLenMax ) {
+          printf( "Exceeded maximum line length\n" );
+          return 1;
+        }
+        
         lineLenMax += LINE_LEN_INCREMENT;
+        
         char *biggerLine = (char*) realloc( line, lineLenMax * sizeof( char ) );
         if ( !biggerLine ) {
           printf( "Out of memory while allocating for characters on line %llu\n", seenLineCount + 1 );
