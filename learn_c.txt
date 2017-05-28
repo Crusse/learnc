@@ -272,3 +272,6 @@ IMPORTANT: when you use an array name in `sizeof` or take its address with `&`, 
   sizeof(arr); // returns the total number of bytes in the array, i.e. 10 * sizeof(int)
   arr + 1; // returns pointer to 2nd element, because array decays to pointer to first _element_
   &arr + 1; // returns pointer to space after the _whole_ array; `&` creates a pointer to the whole array, not an element
+
+any pointer can be cast to void* and back again without loss of information
+function pointer variables and parameters look like this: int (*func_name)(int, double, void*) // the parens are necessary

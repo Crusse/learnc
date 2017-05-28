@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #define MAXLINES 5000
 char *lineptr[MAXLINES];
@@ -9,6 +10,8 @@ void writelines(char *lineptr[], int nlines);
 
 void qsort2(void *lineptr[], int left, int right, int (*comp)(void *, void *));
 int numcmp(char *, char *);
+int directory_order_cmp(char *, char *);
+int directory_order_nocase_cmp(char *, char *);
 void reverse( void *v[], int size );
 void swap(void *v[], int, int);
 
@@ -17,6 +20,8 @@ int main(int argc, char *argv[])
   int nlines;
   int numeric = 0;
   int rev = 0;
+  int caseInsensitive = 0;
+  int dirOrder = 0;
   
   // Exercise 5-14
   for ( int i = 1; i < argc; ++i ) {
@@ -31,9 +36,32 @@ int main(int argc, char *argv[])
         case 'r':
           rev = 1;
           break;
+        case 'f':
+          caseInsensitive = 1;
+          break;
+        case 'd':
+          dirOrder = 1;
+          break;
       }
       argStr++;
     }
+  }
+  
+  int (*cmp_func)(void*, void*) = (int (*)(void*, void*)) strcmp;
+
+  if ( numeric ) {
+    cmp_func = (int (*)(void*, void*)) numcmp;
+  }
+  // Exercise 5-16
+  else if ( dirOrder ) {
+    if ( caseInsensitive )
+      cmp_func = (int (*)(void*, void*)) directory_order_nocase_cmp;
+    else
+      cmp_func = (int (*)(void*, void*)) directory_order_cmp;
+  }
+  // Exercise 5-15
+  else if ( caseInsensitive ) {
+    cmp_func = (int (*)(void*, void*)) strcasecmp;
   }
 
   if((nlines = readlines(lineptr, MAXLINES)) >= 0)
@@ -42,7 +70,7 @@ int main(int argc, char *argv[])
       (void **) lineptr,
       0,
       nlines-1,
-      numeric ? (int (*)(void*, void*)) numcmp : (int (*)(void*, void*)) strcmp
+      cmp_func
     );
     // Exercise 5-14
     if ( rev )
@@ -100,6 +128,52 @@ int numcmp(char *s1, char *s2)
     return 1;
   else
     return 0;
+}
+
+int directory_order_cmp( char *s1, char *s2 ) {
+  
+  char c1 = *( s1++ );
+  char c2 = *( s2++ );
+  
+  while ( c1 != '\0' && c2 != '\0' ) {
+    while ( c1 != '\0' && !isdigit( c1 ) && !isspace( c1 ) && !isalpha( c1 ) )
+      c1 = *s1++;
+    while ( c2 != '\0' && !isdigit( c2 ) && !isspace( c2 ) && !isalpha( c2 ) )
+      c2 = *s2++;
+    if ( c1 != c2 )
+      return c1 - c2;
+    c1 = *s1++;
+    c2 = *s2++;
+  }
+  
+  if ( c1 != c2 )
+    return c1 - c2;
+  
+  return 0;
+}
+
+int directory_order_nocase_cmp( char *s1, char *s2 ) {
+  
+  char c1 = *( s1++ );
+  char c2 = *( s2++ );
+  
+  while ( c1 != '\0' && c2 != '\0' ) {
+    while ( c1 != '\0' && !isdigit( c1 ) && !isspace( c1 ) && !isalpha( c1 ) )
+      c1 = *s1++;
+    while ( c2 != '\0' && !isdigit( c2 ) && !isspace( c2 ) && !isalpha( c2 ) )
+      c2 = *s2++;
+    c1 = tolower( c1 );
+    c2 = tolower( c2 );
+    if ( c1 != c2 )
+      return c1 - c2;
+    c1 = *s1++;
+    c2 = *s2++;
+  }
+  
+  if ( c1 != c2 )
+    return c1 - c2;
+  
+  return 0;
 }
 
 void swap(void *v[], int i, int j)
