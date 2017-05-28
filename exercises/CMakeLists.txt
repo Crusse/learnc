@@ -35,8 +35,9 @@ add_executable(5-9 5-9.c)
 add_executable(5-11 5-11.c)
 add_executable(5-13 5-13.c)
 add_executable(sorting sorting.c)
+add_executable(5-14 5-14.c)
 
 # Make <math.h>'s fmod() work
 target_link_libraries(4-3 m)
 
-install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 4-12 4-13 4-14 5-1 5-2 5-3 5-4 5-5 5-7 5-9 5-11 5-13 sorting RUNTIME DESTINATION bin)
+install(TARGETS 1-19 1-22 2-1 2-3 2-4 2-6 2-9 3-2 3-3 3-4 3-5 4-1 4-2 4-3 4-12 4-13 4-14 5-1 5-2 5-3 5-4 5-5 5-7 5-9 5-11 5-13 sorting 5-14 RUNTIME DESTINATION bin)
