@@ -36,7 +36,7 @@ add_executable(5-11 5-11.c)
 add_executable(5-13 5-13.c)
 add_executable(sorting sorting.c)
 add_executable(5-14 5-14.c)
-add_executable(5-18 5-18.c)
+add_executable(5-18 5-18.c 5-18-dcl.c 5-18-getch.c)
 
 # Make <math.h>'s fmod() work
 target_link_libraries(4-3 m)

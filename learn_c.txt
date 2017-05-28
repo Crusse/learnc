@@ -135,7 +135,7 @@ C allows a function declaration to omit the argument list (for backwards compati
     therefore all empty argument lists should have `void` in the declaration (for compile-time checking)
 
 by default, external variables (i.e. those _defined_ outside of functions) and functions have "external linkage"
-  this means that function even in other .c files (i.e. "compilation units") can access those vars and functions
+  this means that functions even in other .c files (i.e. "compilation units") can access those vars and functions
 
 you cannot declare a new variable in a switch-case statement, because the `case` is only a label
   "error: a label can only be part of a statement and a declaration is not a statement"
@@ -145,7 +145,7 @@ you cannot declare a new variable in a switch-case statement, because the `case`
 
 the scope of an external var (i.e. var declared outside of function) and an external function ("extern" is the default) spans from the point where it is declared to the end of the file
   this is why we need "forward-declaration" to access vars and functions further down in the same file
-  NOTE: you need `extern` to _declare_ a variable
+  NOTE: you need `extern` to _declare_ a variable (functions are `extern` by default)
     int a; // this is a definition
     extern int a; // this is a declaration
 external vars must be defined only once across all files, but can be declared multiple times
