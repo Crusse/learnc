@@ -16,6 +16,8 @@ void dcl(void)
   int ns;
   for(ns = 0; gettoken() == '*'; )     /* count *'s    */
     ns++;
+  if ( tokentype == '\n' )
+    return;
   dirdcl();
   while(ns-- > 0)
     strcat(out," pointer to");
@@ -32,7 +34,7 @@ void dirdcl(void)
     if(tokentype != ')')
       printf("error: missing )\n");
   }
-  else if ( tokentype == NAME)
+  else if (tokentype == NAME)
     strcpy(name,token);
   else
     printf("error: expected name or (dcl)\n");
@@ -76,7 +78,7 @@ int gettoken(void)
       ;
     *p ='\0';
     return tokentype = BRACKETS;
-  } 
+  }
   else if (isalpha(c))
   {
     for(*p++ = c; isalnum(c=getch()); )
@@ -87,5 +89,13 @@ int gettoken(void)
   }
   else
     return tokentype = c;
+}
+
+void resetdcl() {
+  tokentype = 0;
+  token[0] = '\0';
+  name[0] = '\0';
+  datatype[0] = '\0';
+  out[0] = '\0';
 }
 

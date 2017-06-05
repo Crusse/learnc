@@ -12,7 +12,9 @@ int main() {
     dcl();
     if ( tokentype != '\n' )
       printf( "syntax error\n" );
-    printf( "%s: %s %s\n", name, out, datatype );
+    if (name[0])
+      printf( "%s: %s %s\n", name, out, datatype );
+    resetdcl();
   }
   return 0;
 }
