@@ -3,109 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 
-/*
-  
-declaration
- : declaration_specifiers ';'
- | declaration_specifiers init_declarator_list ';'
-
-init_declarator_list
-  : init_declarator
-  | init_declarator_list ',' init_declarator
-
-init_declarator
-  : declarator
-  | declarator '=' initializer
-
-declarator
-  : pointer direct_declarator
-  | direct_declarator
-
-direct_declarator
-  : IDENTIFIER
-  | '(' declarator ')'
-  | direct_declarator '[' constant_expression ']'
-  | direct_declarator '[' ']'
-  | direct_declarator '(' parameter_type_list ')'
-  | direct_declarator '(' identifier_list ')'
-  | direct_declarator '(' ')'
-
-declaration_specifiers
-  : storage_class_specifier
-  | storage_class_specifier declaration_specifiers
-  | type_specifier
-  | type_specifier declaration_specifiers
-  | type_qualifier
-  | type_qualifier declaration_specifiers
-
-storage_class_specifier
-  : TYPEDEF
-  | EXTERN
-  | STATIC
-  | AUTO
-  | REGISTER
-
-type_specifier
-  : VOID
-  | CHAR
-  | SHORT
-  | INT
-  | LONG
-  | FLOAT
-  | DOUBLE
-  | SIGNED
-  | UNSIGNED
-  | struct_or_union_specifier
-  | enum_specifier
-  | TYPE_NAME
-
-type_qualifier
-  : CONST
-  | VOLATILE
-
-*/
-
 #define DEFAULT_GROUP_KEY_LENGTH 6
 #define MAX_GROUP_KEY_LENGTH 31
 #define MAX_TOKEN_LEN 254
-
-#if 0
-
-#define MAX_STACK_SIZE 32
-
-const char *stack[ MAX_STACK_SIZE ] = { 0 };
-const char *stackNextFree = stack;
-
-void stack_push( const char *str ) {
-
-  int len = strlen( str );
-  char *stackStr = malloc( len + 1 );
-
-  strncpy( stackStr, str, len );
-  stackStr[ len ] = '\0';
-
-  ( stackNextFree++ ) = stackStr;
-}
-
-void stack_pop() {
-
-  if ( stackNextFree != stack ) {
-    free( --stackNextFree );
-    return 1;
-  }
-
-  return 0;
-}
-
-char *stack_current() {
-
-  if ( stackNextFree != stack )
-    return stackNextFree - 1;
-
-  return NULL;
-}
-
-#endif
 
 typedef struct tree_item {
   char *value;
@@ -361,19 +261,27 @@ int next_alphanum_terminal() {
 
     c = next_char();
 
-    if ( c == EOF )
+    if ( c == EOF ) {
+      terminalType = T_OTHER;
       return 0;
-
-    terminal[ i ] = c;
+    }
 
     // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
     if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
       ungetc( c, stdin );
       break;
     }
+
+    terminal[ i ] = c;
   }
 
   terminal[ i ] = '\0';
+
+  // Empty string
+  if ( !terminal[ 0 ] ) {
+    terminalType = T_OTHER;
+    return 0;
+  }
 
   if ( is_type_qualifier( terminal ) )
     terminalType = T_TYPE_QUALIFIER;
@@ -383,10 +291,6 @@ int next_alphanum_terminal() {
     terminalType = T_STORAGE_CLASS_SPECIFIER;
   else
     terminalType = T_IDENTIFIER;
-
-  // Empty string
-  if ( !terminal[ 0 ] )
-    return 0;
 
   return 1;
 }
@@ -401,7 +305,7 @@ int parse_pointer() {
     ret = 1;
     consume_space();
     while ( next_alphanum_terminal() && terminalType == T_TYPE_QUALIFIER && consume_space() )
-      ;
+      parse_pointer();
   }
 
   return ret;
@@ -411,16 +315,27 @@ int parse_direct_declarator() {
 
   consume_space();
 
-  if ( next_alphanum_terminal() ) {
+  // We might've already found an identifier when looking for a type qualifier
+  // in parse_pointer()
+  if ( terminalType != T_IDENTIFIER )
+    next_alphanum_terminal();
 
-    if ( terminalType != T_IDENTIFIER )
-      return 0;
+  if ( terminalType == T_IDENTIFIER ) {
     
     consume_space();
 
-    // Ignore function declarations
-    if ( consume_char( '(' ) )
+    // Ignore function declarations, and function parameters
+    if ( consume_char( '(' ) ) {
+      int nestingLevel = 0;
+      char c;
+      while ( ( c = next_char() ) != EOF && ( c != ')' || nestingLevel > 0 ) ) {
+        if ( c == '(' )
+          ++nestingLevel;
+        else if ( c == ')' )
+          --nestingLevel;
+      }
       return 0;
+    }
 
     tree_add_unique( tree, terminal );
 
@@ -446,8 +361,6 @@ int parse_declarator() {
 
   if ( parse_direct_declarator() )
     ret = 1;
-  else
-    ret = 0;
 
   return ret;
 }
@@ -467,7 +380,7 @@ int parse_init_declarator() {
       char c = '\0';
       int initListNesting = 0;
 
-      while ( ( c = next_char() ) != EOF && c != ';' && ( c != ',' || initListNesting > 0 ) ) {
+      while ( ( c = next_char() ) != EOF && ( ( c != ';' && c != ',' ) || initListNesting > 0 ) ) {
         if ( c == '{' )
           ++initListNesting;
         else if ( c == '}' )
@@ -493,8 +406,6 @@ int parse_init_declarator_list() {
 
     if ( !consume_char( ',' ) )
       break;
-
-    consume_space();
   }
 
   return ret;
