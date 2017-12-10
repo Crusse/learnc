@@ -145,7 +145,7 @@ you cannot declare a new variable in a switch-case statement, because the `case`
 
 the scope of an external var (i.e. var declared outside of function) and an external function ("extern" is the default) spans from the point where it is declared to the end of the file
   this is why we need "forward-declaration" to access vars and functions further down in the same file
-  NOTE: you need `extern` to _declare_ a variable (functions are `extern` by default)
+  NOTE: you need `extern` to _declare_ a variable (but functions are `extern` by default)
     int a; // this is a definition
     extern int a; // this is a declaration
 external vars must be defined only once across all files, but can be declared multiple times
@@ -273,5 +273,9 @@ IMPORTANT: when you use an array name in `sizeof` or take its address with `&`, 
   arr + 1; // returns pointer to 2nd element, because array decays to pointer to first _element_
   &arr + 1; // returns pointer to space after the _whole_ array; `&` creates a pointer to the whole array, not an element
 
-any pointer can be cast to void* and back again without loss of information
 function pointer variables and parameters look like this: int (*func_name)(int, double, void*) // the parens are necessary
+many machines require that some types satisfy alignment restrictions (e.g. ints always at even addresses)
+  malloc() takes care of (and guarantees) correct alignment
+any pointer can be cast to void* and back again without loss of information
+  malloc() returns void*, which must be cast to the desired pointer type
+c
