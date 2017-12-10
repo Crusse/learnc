@@ -206,7 +206,7 @@ int is_type_qualifier( char *token ) {
     "volatile",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }
@@ -229,7 +229,7 @@ int is_type_specifier( char *token ) {
     "unsigned",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }
@@ -247,7 +247,7 @@ int is_storage_class_specifier( char *token ) {
     "extern",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }

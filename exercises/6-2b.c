@@ -10,17 +10,18 @@
 
 #define DEFAULT_GROUP_KEY_LENGTH 6
 #define MAX_GROUP_KEY_LENGTH 31
-#define MAX_TOKEN_LEN 254
+#define MAX_TOKEN_LEN 1022
+#define TOKEN_BUFFER_MAX 2
 
-typedef struct tree_item {
+typedef struct tree_item_t {
   char *value;
-  struct tree_item *left;
-  struct tree_item *right;
-} tree_item;
+  struct tree_item_t *left;
+  struct tree_item_t *right;
+} tree_item_t;
 
-tree_item *tree_item_create() {
+tree_item_t *tree_item_create() {
 
-  tree_item *item = malloc( sizeof(tree_item) );
+  tree_item_t *item = malloc( sizeof (tree_item_t) );
   item->value = NULL;
   item->left = NULL;
   item->right = NULL;
@@ -28,7 +29,7 @@ tree_item *tree_item_create() {
   return item;
 }
 
-int tree_item_set_value( tree_item *item, const char *str ) {
+int tree_item_set_value( tree_item_t *item, const char *str ) {
 
   int len = strlen( str );
   char *copy = malloc( len + 1 );
@@ -43,7 +44,7 @@ int tree_item_set_value( tree_item *item, const char *str ) {
   return 0;
 }
 
-void tree_add_unique( tree_item *tree, const char *str ) {
+void tree_add_unique( tree_item_t *tree, const char *str ) {
 
   // Already have this, not adding duplicates
   if ( tree->value && strcmp( tree->value, str ) == 0 )
@@ -64,27 +65,26 @@ void tree_add_unique( tree_item *tree, const char *str ) {
   }
 }
 
-void _print_tree( tree_item *tree, int maxKeyLen, char *currKey, char *prevKey ) {
+void _print_tree( tree_item_t *tree, int maxKeyLen, char *currKey, char *prevKey ) {
 
   if ( tree->left )
     _print_tree( tree->left, maxKeyLen, currKey, prevKey );
 
-  int len = strlen( tree->value );
   strncpy( currKey, tree->value, maxKeyLen );
-  currKey[ len ] = '\0';
+  currKey[ maxKeyLen ] = '\0';
 
   if ( strcmp( currKey, prevKey ) != 0 )
     printf( "-----------------------\n" );
 
   printf( "%s\n", tree->value );
   strncpy( prevKey, currKey, maxKeyLen );
-  prevKey[ len ] = '\0';
+  prevKey[ maxKeyLen ] = '\0';
 
   if ( tree->right )
     _print_tree( tree->right, maxKeyLen, currKey, prevKey );
 }
 
-void print_tree( tree_item *tree, int maxKeyLen ) {
+void print_tree( tree_item_t *tree, int maxKeyLen ) {
 
   if ( !tree->value )
     return;
@@ -95,17 +95,53 @@ void print_tree( tree_item *tree, int maxKeyLen ) {
   _print_tree( tree, maxKeyLen, currKey, prevKey );
 }
 
-enum {
+enum token_type_t {
+  T_EOF,
   T_OTHER,
   T_TYPE_SPECIFIER,
   T_TYPE_QUALIFIER,
   T_STORAGE_CLASS_SPECIFIER,
+  T_PARENS,
+  T_BRACKETS,
   T_IDENTIFIER
 };
 
-tree_item *tree;
-char terminal[ MAX_TOKEN_LEN + 1 ];
-int terminalType = T_OTHER;
+tree_item_t *tree;
+
+typedef struct token_t {
+  int type;
+  char value[ MAX_TOKEN_LEN + 1 ];
+} token_t;
+
+token_t *create_token( char *value, enum token_type_t type ) {
+  
+  token_t *ret = malloc( sizeof (token_t) );
+
+  strncpy( ret->value, value, MAX_TOKEN_LEN );
+  ret->value[ MAX_TOKEN_LEN ] = '\0';
+  ret->type = type;
+
+  return ret;
+}
+
+void destroy_token( token_t *token ) {
+  free( token );
+}
+
+// Somewhat like a ring buffer
+token *tokenBuffer[ TOKEN_BUFFER_MAX ];
+// One of the elements of tokenBuffer
+token *token;
+
+void backtrack_token() {
+
+  if ( !token || token == tokenBuffer[ 0 ] ) {
+    fprintf( stderr, "Nothing to backtrack_token() to\n" );
+    exit( 1 );
+  }
+
+  --token;
+}
 
 int consume_space() {
 
@@ -124,17 +160,53 @@ int consume_space() {
   return ret;
 }
 
+void consume_until_bracket_end( char endChar ) {
+
+  int nestingLevel = 0;
+  char c;
+  char startChar;
+
+  if ( endChar == ')' )
+    startChar = '(';
+  else if ( endChar == ']' )
+    startChar = '[';
+  else if ( endChar == '}' )
+    startChar = '{';
+  else {
+    fprintf( stderr, "Invalid endChar '%c'\n", endChar );
+    exit( 1 );
+  }
+
+  while ( ( c = getchar() ) != EOF && ( c != endChar || nestingLevel > 0 ) ) {
+    if ( c == startChar )
+      ++nestingLevel;
+    else if ( c == endChar )
+      --nestingLevel;
+  }
+}
+
+void peek_token() {
+
+}
+
 void next_token() {
 
-  consume_space();
+  if ( token && token != tokenBuffer[ TOKEN_BUFFER_MAX - 1 ] ) {
+    ++token;
+    return;
+  }
 
-  char c;
+  char tokenValue[ MAX_TOKEN_LEN + 1 ] = { 0 };
+  int tokenType = T_EOF;
 
   while ( 1 ) {
 
     consume_space();
 
-    c = getchar();
+    char c = getchar();
+
+    if ( c == EOF )
+      break;
 
     if ( c == '/' ) {
 
@@ -144,23 +216,23 @@ void next_token() {
       // Multi-line comment
       if ( nextC == '*' ) {
         char lastChar = '\0';
-        while ( 1 ) {
-          c = getchar();
-          if ( c == EOF )
-            break;
+        while ( ( c = getchar() ) != EOF ) {
           if ( lastChar == '*' && c == '/' )
             break;
           lastChar = c;
         }
-        continue;
       }
       // Single-line comment
       else if ( nextC == '/' ) {
         while ( ( c = getchar() ) != EOF && c != '\n' )
           ;
-        continue;
       }
-
+      else {
+        // A literal forward slash
+        strcpy( tokenValue, "/" );
+        tokenType = T_OTHER;
+        break;
+      }
     }
     // String or character literal
     else if ( c == '"' || c == '\'' ) {
@@ -173,34 +245,84 @@ void next_token() {
         else if ( c == '\\' )
           isEscaping = 1;
       }
-      continue;
+    }
+    else if ( c === '(' ) {
+
+      consume_until_bracket_end( ')' );
+      strcpy( tokenValue, ")" );
+      tokenType = T_PARENS;
+
+      break;
+    }
+    else if ( c === '[' ) {
+
+      consume_until_bracket_end( ']' );
+      strcpy( tokenValue, "]" );
+      tokenType = T_BRACKETS;
+
+      break;
+    }
+    // [a-zA-Z_]
+    else if ( is_identifier_start_char( c ) ) {
+
+      int i = 0;
+
+      for ( ; i < MAX_TOKEN_LEN; ++i ) {
+
+        c = getchar();
+
+        if ( c == EOF )
+          break;
+
+        // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
+        if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
+          ungetc( c, stdin );
+          break;
+        }
+
+        tokenValue[ i ] = c;
+      }
+
+      tokenValue[ i ] = '\0';
+
+      // Empty string
+      if ( !tokenValue[ 0 ] )
+        tokenType = T_OTHER;
+      else if ( is_type_qualifier( tokenValue ) )
+        tokenType = T_TYPE_QUALIFIER;
+      else if ( is_type_specifier( tokenValue ) )
+        tokenType = T_TYPE_SPECIFIER;
+      else if ( is_storage_class_specifier( tokenValue ) )
+        tokenType = T_STORAGE_CLASS_SPECIFIER;
+      else
+        tokenType = T_IDENTIFIER;
+
+      break;
+    }
+    else {
+
+      tokenValue[ 0 ] = c;
+      tokenValue[ 1 ] = '\0';
+      tokenType = T_OTHER;
+
+      break;
     }
   }
-}
 
-/**
- * Returns the next non-comment, non-string/char-literal character.
- */
-int next_char() {
-
-  char c = '\0';
-
-  while ( 1 ) {
-
-    c = getchar();
-
-    if ( c == EOF )
-      return c;
-
-    return c;
+  // Shift all elements in the buffer to the left (i.e. discard the oldest
+  // token)
+  for ( int i = 0; i < TOKEN_BUFFER_MAX - 1; ++i ) {
+    if ( tokenBuffer[ i ] )
+      destroy_token( tokenBuffer[ i ] );
+    tokenBuffer[ i ] = tokenBuffer[ i + 1 ];
   }
 
-  return EOF;
+  token = tokenBuffer[ TOKEN_BUFFER_MAX - 1 ] = create_token( tokenValue, tokenType );
 }
 
 int consume_char( char toConsume ) {
 
-  char c = next_char();
+  char c = getchar();
 
   if ( c == toConsume )
     return 1;
@@ -221,7 +343,7 @@ int is_type_qualifier( char *token ) {
     "volatile",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }
@@ -244,7 +366,7 @@ int is_type_specifier( char *token ) {
     "unsigned",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }
@@ -262,55 +384,12 @@ int is_storage_class_specifier( char *token ) {
     "extern",
   };
 
-  for ( int i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
     if ( strcmp( strs[ i ], token ) == 0 )
       return 1;
   }
 
   return 0;
-}
-
-int next_alphanum_terminal() {
-
-  char c;
-  int i = 0;
-
-  for ( ; i < MAX_TOKEN_LEN; ++i ) {
-
-    c = next_char();
-
-    if ( c == EOF ) {
-      terminalType = T_OTHER;
-      return 0;
-    }
-
-    // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
-    if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
-      ungetc( c, stdin );
-      break;
-    }
-
-    terminal[ i ] = c;
-  }
-
-  terminal[ i ] = '\0';
-
-  // Empty string
-  if ( !terminal[ 0 ] ) {
-    terminalType = T_OTHER;
-    return 0;
-  }
-
-  if ( is_type_qualifier( terminal ) )
-    terminalType = T_TYPE_QUALIFIER;
-  else if ( is_type_specifier( terminal ) )
-    terminalType = T_TYPE_SPECIFIER;
-  else if ( is_storage_class_specifier( terminal ) )
-    terminalType = T_STORAGE_CLASS_SPECIFIER;
-  else
-    terminalType = T_IDENTIFIER;
-
-  return 1;
 }
 
 int parse_pointer() {
@@ -322,7 +401,7 @@ int parse_pointer() {
   while ( consume_char( '*' ) ) {
     ret = 1;
     consume_space();
-    while ( next_alphanum_terminal() && terminalType == T_TYPE_QUALIFIER && consume_space() )
+    while ( next_alphanum_token() && tokenType == T_TYPE_QUALIFIER && consume_space() )
       parse_pointer();
   }
 
@@ -335,10 +414,10 @@ int parse_direct_declarator() {
 
   // We might've already found an identifier when looking for a type qualifier
   // in parse_pointer()
-  if ( terminalType != T_IDENTIFIER )
-    next_alphanum_terminal();
+  if ( tokenType != T_IDENTIFIER )
+    next_alphanum_token();
 
-  if ( terminalType == T_IDENTIFIER ) {
+  if ( tokenType == T_IDENTIFIER ) {
     
     consume_space();
 
@@ -346,7 +425,7 @@ int parse_direct_declarator() {
     if ( consume_char( '(' ) ) {
       int nestingLevel = 0;
       char c;
-      while ( ( c = next_char() ) != EOF && ( c != ')' || nestingLevel > 0 ) ) {
+      while ( ( c = getchar() ) != EOF && ( c != ')' || nestingLevel > 0 ) ) {
         if ( c == '(' )
           ++nestingLevel;
         else if ( c == ')' )
@@ -355,7 +434,7 @@ int parse_direct_declarator() {
       return 0;
     }
 
-    tree_add_unique( tree, terminal );
+    tree_add_unique( tree, token );
 
     return 1;
   }
@@ -398,7 +477,7 @@ int parse_init_declarator() {
       char c = '\0';
       int initListNesting = 0;
 
-      while ( ( c = next_char() ) != EOF && ( ( c != ';' && c != ',' ) || initListNesting > 0 ) ) {
+      while ( ( c = getchar() ) != EOF && ( ( c != ';' && c != ',' ) || initListNesting > 0 ) ) {
         if ( c == '{' )
           ++initListNesting;
         else if ( c == '}' )
@@ -433,10 +512,10 @@ int parse_declaration_specifiers() {
 
   int ret = 0;
 
-  while ( next_alphanum_terminal() &&
-    ( terminalType == T_STORAGE_CLASS_SPECIFIER ||
-      terminalType == T_TYPE_SPECIFIER ||
-      terminalType == T_TYPE_QUALIFIER ) )
+  while ( next_alphanum_token() &&
+    ( tokenType == T_STORAGE_CLASS_SPECIFIER ||
+      tokenType == T_TYPE_SPECIFIER ||
+      tokenType == T_TYPE_QUALIFIER ) )
   {
     ret = 1;
   }
@@ -446,7 +525,11 @@ int parse_declaration_specifiers() {
 
 int parse_declaration() {
 
-  if ( parse_declaration_specifiers() && consume_space() && parse_init_declarator_list() ) {
+  next_token();
+
+  ...TODO...
+
+  parse_declaration_specifiers(); && consume_space() && parse_init_declarator_list() ) {
 
     consume_space();
 
@@ -461,7 +544,7 @@ void populate_tree() {
 
   while ( !feof( stdin ) ) {
     if ( !parse_declaration() )
-      next_char();
+      getchar();
   }
 }
 
