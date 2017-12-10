@@ -13,7 +13,7 @@ global vars must be _declared_ in each function that want to access them
 
 variables shouldn't be named to start with `_`, as libraries use that convention
 types:
-  char // byte
+  char // always a single byte
   int // natural size of integers in the host machine; at least 16 bits
   float // single precision float
   [long] double // double precision float
@@ -219,7 +219,7 @@ the integer 0 can be assigned to a pointer, and 0 can be compared with a pointer
   NULL is defined in <stdio.h>
 two pointers can be compared with <, ==, <=, etc.
   but only for pointers pointing to elements of the same array
-  NOTE: a pointer can also be compared to the address of the first element _past_ the end of the array. this is useful in iterating:
+  NOTE: pointer arithmetic with the address just _past_ the end of the array is legal. this is useful in iterating:
     int arr[3] = {0};
     int *onePastLast = &arr[3];
     for ( int *p = arr; p != onePastLast; p++ ) ;
@@ -278,4 +278,62 @@ many machines require that some types satisfy alignment restrictions (e.g. ints 
   malloc() takes care of (and guarantees) correct alignment
 any pointer can be cast to void* and back again without loss of information
   malloc() returns void*, which must be cast to the desired pointer type
-c
+
+structs are called "records" in some languages
+`point`, the _structure tag_, is optional here:
+  struct point {
+    int x;
+    int y;
+  };
+NOTE: `struct` defines a type. therefore it can be followed by a list of var names, just like int, etc.
+  struct point {
+    int x;
+    int y;
+  } topLeft, bottomRight;
+  struct point midPoint; // another way to define a var
+  struct point midPoint = {200, 150}; // initialization; each val must be a constant expression
+you use a member with dot-syntax: topLeft.x = 0;
+legal operations on structs:
+  copying it as a unit (also applies to passing to functions, and returning from them)
+  assigning to it as a unit (automatic structures can be initialized with assignment)
+  taking its address with &
+  accessing its members
+  initialization with constant expressions
+NOTE: the whole struct is _copied_ when passed to functions, and returned from them, unless a pointer is used
+pointers to structures are so common that there is a shorthand for them. these are equivalent:
+  (*topLeft).x; // parens are required
+  topLeft->x;
+struct operators . and ->, and func call and array operators () and [] are at the top of the dependency hierarchy
+  game->doFrame();
+  world.map[i][j];
+  *topLeft->somePtr; // dereferences somePtr
+  ++game->frameCount;
+array of structs:
+  struct point pts[MAXPOINTS];
+  struct point pts[] = {
+    { 0, 0 },
+    { 200, 0 },
+    { 200, 100 },
+    { 0, 100 }
+  };
+  // Equivalent; braces not required when initializers are simple vars, and no member's initializer is omitted
+  struct point pts[] = {
+    0, 0,
+    200, 0,
+    200, 100,
+    0, 100
+  };
+NOTE: it's illegal to have a struct member of the same type as the parent, but a pointer to one is OK
+  struct person { struct person parent; }; // illegal
+  struct person { struct person *parent; }; // ok
+
+`sizeof` returns (as size_t) the size of any object as bytes:
+  sizeof object
+  sizeof(type name) // REMEMBER: this form looks like a type cast
+e.g.
+  sizeof topLeft
+  sizeof(point)
+NOTE: sizeof can't be used in an #if, but can be used in a #define
+  #define NPOINTS (sizeof pts / sizeof(struct point))
+NOTE: the sizeof a struct is not necessarily just the sum of its member types, because alignment might add holes between members
+

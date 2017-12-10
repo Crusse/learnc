@@ -9,7 +9,6 @@
 
 enum { NAME, PARENS, BRACKETS };
 
-int gettoken(void);
 extern int tokentype;   /* type of last token */
 extern char token[];    /* last token string */
 extern char name[]; /* identifier name */
@@ -18,6 +17,8 @@ extern char out[]; /* output string */
 
 void dcl(void);
 void dirdcl(void);
+int gettoken(void);
+void resetdcl();
 
 //
 // 5-18-getch.c
