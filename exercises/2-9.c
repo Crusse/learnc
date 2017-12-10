@@ -31,6 +31,9 @@ int bitcount_faster( unsigned x ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   printf( "32: " );
   print_bits( 32 );

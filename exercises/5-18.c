@@ -4,7 +4,10 @@
 
 #include "5-18.h"
 
-int main() {
+int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   while (gettoken() != EOF) {
     strcpy(datatype, token);

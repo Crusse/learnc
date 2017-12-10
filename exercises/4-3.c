@@ -20,7 +20,10 @@ double pop(void);
 double peek(void);
 int _getline( char* );
 
-int main(void) {
+int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   char line[ MAXLINE ];
   int type;

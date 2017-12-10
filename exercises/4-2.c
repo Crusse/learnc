@@ -55,6 +55,9 @@ double atof( char str[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   printf( "123.0: %f\n", atof( "123.0" ) );
   printf( "0.0: %f\n", atof( "0.0" ) );

@@ -68,6 +68,9 @@ void itob( int num, int base, char *retStr ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char str[ 1000 ] = "";
   int num = 128;

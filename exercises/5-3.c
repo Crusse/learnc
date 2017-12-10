@@ -9,6 +9,9 @@ void _strcat( char *s, char *t ) {
 }
 
 int main( int argc, char **argv ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   char s1[] = "foo";
   char s2[] = "bar";

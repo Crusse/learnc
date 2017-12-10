@@ -35,6 +35,9 @@ void print_bits( unsigned char num ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   unsigned char bits1 = 15;
   unsigned char bits2 = 22;

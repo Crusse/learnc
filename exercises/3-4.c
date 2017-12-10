@@ -67,6 +67,9 @@ void itoa( int n, char str[], int minWidth ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char str[ 100 ] = "";
 

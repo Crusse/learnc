@@ -19,6 +19,9 @@ int strrindex( char haystack[], char needle[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   printf( "%d\n", strrindex( "abcdefg", "abc" ) );
   printf( "%d\n", strrindex( "abcabcd", "abc" ) );

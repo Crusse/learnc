@@ -9,6 +9,9 @@
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   int i = 1;
   int j = 2;

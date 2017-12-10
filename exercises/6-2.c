@@ -451,6 +451,9 @@ void populate_tree() {
 }
 
 int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   int keyLength = DEFAULT_GROUP_KEY_LENGTH; 
 

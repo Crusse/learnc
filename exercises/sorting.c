@@ -83,7 +83,10 @@ void init_rand_arr( int arr[], int size ) {
   }
 }
 
-int main() {
+int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   srand( clock() );
   
