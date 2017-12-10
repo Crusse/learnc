@@ -65,6 +65,8 @@ automatic vars are initialized each time the function is called
   the initializer for automatic and `register` vars can be any expression (even function calls)
 external (outside functions) and static vars (inside functions) without explicit initializers are initialized to 0 by default
 automatic vars (i.e. non-static function vars) and `register` vars without explicit initializers are initialized to undefined (i.e. garbage) by default
+  IMPORTANT: initialize automatic vars! otherwise it may contain passwords (from a previous function's stack) etc.
+    https://gcc.gnu.org/bugzilla/show_bug.cgi?id=8537
 guideline: if it incurs a runtime performance cost, a var is not initialized to 0, but undefined, by default
 `const` can be added to any decl
   for an array this means that the elements won't be altered

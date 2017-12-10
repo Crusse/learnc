@@ -1,3 +1,6 @@
+// Implements 6-2, but doesn't handle typedefs, struct vars or function
+// parameters.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

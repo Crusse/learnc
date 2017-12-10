@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(c_tests LANGUAGES C)
 
 if ( CMAKE_COMPILER_IS_GNUCC )
-  set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wall -pedantic")
+  set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wall -Wextra -pedantic")
 endif ( CMAKE_COMPILER_IS_GNUCC )
 if ( MSVC )
   set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} /W4")
