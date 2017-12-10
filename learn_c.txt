@@ -338,3 +338,11 @@ many machines require that some types satisfy alignment restrictions (e.g. ints 
   malloc() takes care of (and guarantees) correct alignment
 any pointer can be cast to void* and back again without loss of information
   malloc() returns void*, which must be cast to the desired pointer type
+
+exercise 6-2 can be solved with a recursive descent parser
+  a recursive descent parser is a top-down parser (rather than a bottom-up parser)
+  gcc and clang use hand-written recursive descent parsers
+  https://stackoverflow.com/a/45872887 (especially point 4)
+  https://stackoverflow.com/questions/5975741/what-is-the-difference-between-ll-and-lr-parsing
+  you can't parse C (and other programming languages) purely with regex, as there are nested structures (parentheses in expressions etc.)
+  https://en.wikipedia.org/wiki/The_lexer_hack
