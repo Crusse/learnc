@@ -3,6 +3,9 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   printf( "\n" );
   printf( "signed char:    %4d - %4d\n", SCHAR_MIN, SCHAR_MAX );

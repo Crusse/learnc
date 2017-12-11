@@ -10,6 +10,9 @@ int getint( int* );
 #define MAX_NUMS 5
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   int nums[ MAX_NUMS ] = { 0 };
   

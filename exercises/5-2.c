@@ -10,6 +10,9 @@ int getfloat( double* );
 #define MAX_NUMS 5
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   double nums[ MAX_NUMS ] = { 0 };
   

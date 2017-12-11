@@ -17,6 +17,9 @@ typedef unsigned long tail_limit_t;
  * ./5-13 -42  prints the last 42 lines of stdin
  */
 int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   tail_limit_t limit = 10;
 

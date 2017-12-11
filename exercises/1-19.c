@@ -6,6 +6,9 @@ int _getline( char *str );
 void strrev( char *str );
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   char line[ MAXLINE ] = "";
   

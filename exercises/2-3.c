@@ -30,6 +30,9 @@ int htoi( char hex[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   printf( "%d\n", htoi( "0xFF" ) );
   printf( "%d\n", htoi( "0XFF" ) );

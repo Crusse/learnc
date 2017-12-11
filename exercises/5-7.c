@@ -8,7 +8,7 @@
 char *lineptr[MAXLINES];  // pointers to text lines
 
 int readlines(char *lineptr[], int nlines);
-int readlines_5_7(char *lineptr[], char[][MAXLEN], int nlines);
+int readlines_5_7(char *lineptr[], int nlines);
 void writelines(char *lineptr[], int nlines);
 void qsort(char *lineptr[], int left, int right);
 
@@ -16,7 +16,6 @@ void qsort(char *lineptr[], int left, int right);
 int main(void)
 {
   int nlines;    // number of input lines read
-  char lines[ MAXLINES ][ MAXLEN ];
   int iterations = 5000000;
   
   char *arr[] = { "aaa", "bbb", "ccc" };
@@ -40,7 +39,7 @@ int main(void)
   
   startTime = (float) clock() / CLOCKS_PER_SEC;
   for ( int i = 0; i < iterations; ++i ) {
-    nlines = readlines_5_7(lineptr, lines, MAXLINES);
+    nlines = readlines_5_7(lineptr, MAXLINES);
   }
   printf( "readlines_5_7(): %.3f\n", ( (float) clock() / CLOCKS_PER_SEC ) - startTime );
   
@@ -85,7 +84,7 @@ int readlines(char *lineptr[], int maxlines)
  * There doesn't really seem to be a performance difference between this one
  * and readlines().
  */
-int readlines_5_7(char *lineptr[], char lines[][ MAXLEN ], int maxlines)
+int readlines_5_7(char *lineptr[], int maxlines)
 {
   int len, nlines;  
   nlines = 0;

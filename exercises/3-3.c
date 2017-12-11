@@ -50,6 +50,9 @@ void expand( char *from, char *to ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char str1[] = "Something a-z a-b-c here";
   char str2[] = "Foo a-z0-9 bar";

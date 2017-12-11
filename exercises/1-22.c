@@ -4,6 +4,9 @@
 #define COLS 60
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char whitespace[ MAXLINE ] = "";
   int whitespaceChars = 0;

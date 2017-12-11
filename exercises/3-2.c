@@ -65,6 +65,9 @@ void unescape( char to[], char from[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char from[] = "some\n\tte\\xt\nhere";
   // 'to' needs enough space for two characters per character, as each escaped

@@ -27,6 +27,9 @@ int strend( char *s, char *t ) {
 }
 
 int main( int argc, char **argv ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   printf( "%d\n", strend( "foobar", "baz" ) );
   printf( "%d\n", strend( "foobar", "bar" ) );

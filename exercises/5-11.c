@@ -9,6 +9,9 @@
  * ./5-11 2 3 4 + '*'  evalutes  2*(3+4)
  */
 int main( int argc, char *argv[] ) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
 
   double operands[ STACK_MAX ] = { 0 };
   int opCount = 0;

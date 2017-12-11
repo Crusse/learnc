@@ -23,6 +23,9 @@ void squeeze( char str[], char removed[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char str[] = "a1b23cd4";
   

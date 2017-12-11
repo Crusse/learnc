@@ -19,6 +19,9 @@ void reverse( char str[] ) {
 }
 
 int main(int argc, char **argv) {
+  // Prevent GCC warnings
+  (void) argc;
+  (void) argv;
   
   char str[] = "abcd1234";
   reverse( str );
