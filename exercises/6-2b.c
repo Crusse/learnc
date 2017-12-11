@@ -13,6 +13,10 @@
 #define MAX_TOKEN_LEN 1023
 #define TOKEN_BUFFER_MAX 2
 #define TOKEN_BUFFER_USE_MALLOC 0
+#define DECL_STACK_MAX 32
+#define PRINT_VARS 1
+#define PRINT_PARAMS 1
+#define PRINT_FUNCS 0
 
 typedef struct tree_item_t {
   char *value;
@@ -103,12 +107,14 @@ enum token_type_t {
   T_TYPE_QUALIFIER,
   T_STORAGE_CLASS_SPECIFIER,
   T_PAREN_L,
+  T_PAREN_R,
   T_BRACKET_L,
+  T_BRACKET_R,
   T_SEMICOLON,
   T_COMMA,
   T_ASTERISK,
-  T_EQUALS,
-  T_IDENTIFIER
+  T_SINGLE_EQUALS,
+  T_IDENTIFIER,
 };
 
 tree_item_t *tree;
@@ -119,13 +125,17 @@ typedef struct token_t {
 } token_t;
 
 #if TOKEN_BUFFER_USE_MALLOC
+
 // Somewhat like a ring buffer
 token_t *tokenBuffer[ TOKEN_BUFFER_MAX ];
 // One of the elements of tokenBuffer
 token_t *token = tokenBuffer[ TOKEN_BUFFER_MAX - 1 ];
+
 #else
+
 token_t tokenBuffer[ TOKEN_BUFFER_MAX ];
 token_t *token = &tokenBuffer[ TOKEN_BUFFER_MAX - 1 ];
+
 #endif
 
 void backtrack_token() {
@@ -258,20 +268,6 @@ void next_token() {
       token->type = T_OTHER;
       break;
     }
-    else if ( c === '(' ) {
-
-      strcpy( token->value, "(" );
-      token->type = T_PAREN_L;
-
-      break;
-    }
-    else if ( c === '[' ) {
-
-      strcpy( token->value, "[" );
-      token->type = T_BRACKET_L;
-
-      break;
-    }
     // [a-zA-Z_]
     else if ( is_identifier_start_char( c ) ) {
 
@@ -325,6 +321,14 @@ void next_token() {
         token->type = T_COMMA;
       else if ( c == '*' )
         token->type = T_ASTERISK;
+      else if ( c == '(' )
+        token->type = T_PAREN_L;
+      else if ( c == ')' )
+        token->type = T_PAREN_R;
+      else if ( c == '[' )
+        token->type = T_BRACKET_L;
+      else if ( c == ']' )
+        token->type = T_BRACKET_R;
       else if ( c == '=' ) {
         char nextC = getchar();
         if ( nextC == '=' ) {
@@ -333,7 +337,7 @@ void next_token() {
         }
         else {
           ungetc( nextC, stdin );
-          token->type = T_EQUALS;
+          token->type = T_SINGLE_EQUALS;
         }
       }
       else
@@ -431,6 +435,81 @@ int is_storage_class_specifier( char *token ) {
   return 0;
 }
 
+typedef enum decltype_t {
+  D_IDENTIFIER,
+  D_POINTER,
+  D_FUNC,
+  D_PARAM,
+} decltype_t;
+
+typedef struct decl_t {
+  decltype_t type;
+  char *identifier[ MAX_TOKEN_LEN + 1 ];
+} decl_t;
+
+decl_t *declStack[ DECL_STACK_MAX ];
+
+int parse_identifier_list_rest() {
+
+  if ( accept_token( T_COMMA ) ) {
+    parse_identifier_list();
+    return 1;
+  }
+
+  return 0;
+}
+
+// identifier_list
+//  : IDENTIFIER
+//  | identifier_list ',' IDENTIFIER
+//
+// Note: this has a left-recursive rule, which I changed into two right-recursive
+// productions like this:
+//
+// identifier_list
+//  : IDENTIFIER identifier_list_rest_opt
+//
+// identifier_list_rest
+//  : ',' identifier_list
+//  | empty
+//
+int parse_identifier_list() {
+
+  if ( accept_token( T_IDENTIFIER ) ) {
+    parse_identifier_list_rest();
+    return 1;
+  }
+
+  return 0;
+}
+
+int parse_parameter_type_list() {
+
+
+}
+
+int parse_direct_declarator_brackets() {
+
+  if ( accept_token( T_BRACKET_L ) ) {
+    // Discard everything inside brackets
+    consume_until_bracket_end( ']' );
+    next_token();
+    return 1;
+  }
+
+  return 0;
+}
+
+int parse_direct_declarator_parens() {
+
+  if ( accept_token( T_PAREN_L ) ) {
+    if ( accept_token( T_PAREN_R ) || parse_parameter_type_list() || parse_identifier_list() )
+      return 1;
+  }
+
+  return 0;
+}
+
 // direct_declarator
 //  : IDENTIFIER
 //  | '(' declarator ')'
@@ -441,16 +520,32 @@ int is_storage_class_specifier( char *token ) {
 //  | direct_declarator '(' ')'
 int parse_direct_declarator() {
 
-  if ( accept_token( T_IDENTIFIER ) ) {
+  int haveIdentifier = 0;
 
-    tree_add_unique( tree, token->value );
-    return 1;
-  }
-  // Parenthesized variable name
-  else if ( accept( T_PAREN_L ) ) {
-
+  // Parenthesized identifier
+  if ( accept_token( T_PAREN_L ) ) {
     int parse_declarator();
-    return parse_declarator();
+    haveIdentifier = parse_declarator();
+  }
+  // Identifier
+  else {
+    //FIXME tree_add_unique( tree, token->value );
+    haveIdentifier = accept_token( T_IDENTIFIER );
+  }
+
+  if ( haveIdentifier ) {
+
+    if ( parse_direct_declarator_parens() ) {
+      return 1;
+    }
+    else if ( parse_direct_declarator_brackets() ) {
+      return 1;
+    }
+    else {
+
+    }
+
+    return 1;
   }
 
   return 0;
@@ -496,8 +591,8 @@ int parse_init_declarator() {
 
   if ( parse_declarator() ) {
 
-    // Discard initializer with an ad-hoc hack
-    if ( peek_token( T_EQUALS ) ) {
+    // Discard initializer
+    if ( accept_token( T_SINGLE_EQUALS ) ) {
 
       char c = '\0';
       int initListNesting = 0;
@@ -586,11 +681,11 @@ int parse_declaration() {
   return 0;
 }
 
-void populate_tree() {
+void parse_translation_unit() {
 
   while ( 1 ) {
     next_token();
-    if ( token->type == EOF )
+    if ( token->type == T_EOF )
       break;
     parse_declaration();
   }
