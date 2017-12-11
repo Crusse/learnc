@@ -346,3 +346,5 @@ exercise 6-2 can be solved with a recursive descent parser
   https://stackoverflow.com/questions/5975741/what-is-the-difference-between-ll-and-lr-parsing
   you can't parse C (and other programming languages) purely with regex, as there are nested structures (parentheses in expressions etc.)
   https://en.wikipedia.org/wiki/The_lexer_hack
+  https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/
+  http://holub.com/compiler/
