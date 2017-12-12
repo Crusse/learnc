@@ -1,6 +1,6 @@
 // Same as 6-2.c, but supports function parameters. This implementation also
 // has a parser that I consciously tried to make a recursive descent, top-down,
-// backtracking parser (whereas 6-2.c was totally ad-hoc) although I'm still
+// backtracking parser (whereas 6-2.c was totally ad-hoc), although I'm still
 // not totally sure if that's how you'd describe this parser.
 //
 // "Recursive-descent can handle any grammar which is LL(*) (that is, unlimited
@@ -18,92 +18,9 @@
 #define MAX_GROUP_KEY_LENGTH 31
 #define MAX_TOKEN_LEN 127
 #define MAX_BACKTRACK_TOKENS 512
-#define DECL_STACK_MAX 32
 #define PRINT_VARS 1
 #define PRINT_PARAMS 1
 #define PRINT_FUNCS 1
-
-typedef struct tree_item_t {
-  char *value;
-  struct tree_item_t *left;
-  struct tree_item_t *right;
-} tree_item_t;
-
-tree_item_t *tree_item_create() {
-
-  tree_item_t *item = malloc( sizeof (tree_item_t) );
-  item->value = NULL;
-  item->left = NULL;
-  item->right = NULL;
-
-  return item;
-}
-
-int tree_item_set_value( tree_item_t *item, const char *str ) {
-
-  int len = strlen( str );
-  char *copy = malloc( len + 1 );
-
-  if ( copy ) {
-    strncpy( copy, str, len );
-    copy[ len ] = '\0';
-    item->value = copy;
-    return 1;
-  }
-
-  return 0;
-}
-
-void tree_add_unique( tree_item_t *tree, const char *str ) {
-
-  // Already have this, not adding duplicates
-  if ( tree->value && strcmp( tree->value, str ) == 0 )
-    return;
-
-  if ( !tree->value ) {
-    tree_item_set_value( tree, str );
-  }
-  else if ( strcmp( str, tree->value ) < 0 ) {
-    if ( !tree->left )
-      tree->left = tree_item_create();
-    tree_add_unique( tree->left, str );
-  }
-  else {
-    if ( !tree->right )
-      tree->right = tree_item_create();
-    tree_add_unique( tree->right, str );
-  }
-}
-
-void _print_tree( tree_item_t *tree, int maxKeyLen, char *currKey, char *prevKey ) {
-
-  if ( tree->left )
-    _print_tree( tree->left, maxKeyLen, currKey, prevKey );
-
-  strncpy( currKey, tree->value, maxKeyLen );
-  currKey[ maxKeyLen ] = '\0';
-
-  if ( strcmp( currKey, prevKey ) != 0 )
-    printf( "-----------------------\n" );
-
-  printf( "%s\n", tree->value );
-  strncpy( prevKey, currKey, maxKeyLen );
-  prevKey[ maxKeyLen ] = '\0';
-
-  if ( tree->right )
-    _print_tree( tree->right, maxKeyLen, currKey, prevKey );
-}
-
-void print_tree( tree_item_t *tree, int maxKeyLen ) {
-
-  if ( !tree->value )
-    return;
-
-  char currKey[ MAX_GROUP_KEY_LENGTH + 1 ] = { 0 };
-  char prevKey[ MAX_GROUP_KEY_LENGTH + 1 ] = { 0 };
-
-  _print_tree( tree, maxKeyLen, currKey, prevKey );
-}
 
 typedef enum token_type_t {
   T_EOF,
@@ -124,13 +41,13 @@ typedef enum token_type_t {
   T_IDENTIFIER,
 } token_type_t;
 
-tree_item_t *tree;
-
 typedef struct token_t {
   token_type_t type;
   char text[ MAX_TOKEN_LEN + 1 ];
 } token_t;
 
+// We keep a buffer of the lexed tokens, so that we can backtrack and
+// not have to re-lex the tokens again
 token_t tokenBuffer[ MAX_BACKTRACK_TOKENS ];
 token_t *token = &tokenBuffer[ MAX_BACKTRACK_TOKENS - 1 ];
 token_t *backtrackPoint = &tokenBuffer[ MAX_BACKTRACK_TOKENS - 1 ];
@@ -244,12 +161,12 @@ void next_token() {
   // There is a token already in the buffer (backtrack() was called earlier)
   if ( token != tokenBuffer + ( MAX_BACKTRACK_TOKENS - 1 ) ) {
     ++token;
-    //printf( "Token (buffered): %2d, %s\n", token->type, token->text );
+    printf( "Token (buffered): %2d, %s\n", token->type, token->text );
     return;
   }
 
   // Shift all elements in the buffer to the left (i.e. discard the oldest
-  // token)
+  // token and make space for a new one)
   memmove( tokenBuffer, tokenBuffer + 1, sizeof tokenBuffer[ 0 ] * ( MAX_BACKTRACK_TOKENS - 1 ) );
 
   if ( backtrackPoint == tokenBuffer ) {
@@ -392,83 +309,67 @@ void next_token() {
   //printf( "Token: %13d, %s\n", token->type, token->text );
 }
 
-int accept_token( token_type_t type ) {
+token_t *accept_token( token_type_t type ) {
 
   if ( token->type == type ) {
     printf( "Accepted %d, \"%s\"\n", token->type, token->text );
     next_token();
-    return 1;
+    return token - 1;
   }
 
   printf( "Rejected %d, \"%s\" (looking for %d)\n", token->type, token->text, type );
 
-  return 0;
+  return NULL;
 }
 
-int accept_token_by_char( char c ) {
+token_t *accept_token_by_char( char c ) {
 
   if ( token->text[ 0 ] == c ) {
     next_token();
-    return 1;
+    return token - 1;
   }
 
-  return 0;
+  return NULL;
 }
 
-int peek_token( token_type_t type ) {
-  return token->type == type;
+typedef struct tree_item_t;
+tree_item_t tree;
+void tree_add_unique( tree_item_t *, const char * );
+
+void add_declaration_to_identifier_tree( decltype_t declType, char *identifier ) {
+
+  char *str[ MAX_TOKEN_LEN + 1 + 20 ];
+
+  if ( 0 ) {}
+
+#if PRINT_VARS
+  else if ( declType = D_VAR )
+    tree_add_unique( &tree, identifier );
+#endif
+
+#if PRINT_PARAMS
+  else if ( declType = D_PARAM )
+    tree_add_unique( &tree, identifier );
+#endif
+
+#if PRINT_FUNCS
+  else if ( declType = D_FUNC )
+    tree_add_unique( &tree, identifier );
+#endif
 }
 
-#if 0
+///////////////////////////////////////////////////////////
+// Parsing of all C grammar productions that we care about.
+// This is where we care about the semantics of the lexed
+// tokens. The most important function is parse_direct_declarator(),
+// where we collect identifier names.
+///////////////////////////////////////////////////////////
+
 typedef enum decltype_t {
-  D_IDENTIFIER,
-  D_POINTER,
+  D_VAR,
   D_FUNC,
   D_PARAM,
 } decltype_t;
-
-typedef struct decl_t {
-  decltype_t type;
-  char *identifier[ MAX_TOKEN_LEN + 1 ];
-} decl_t;
-
-decl_t *declStack[ DECL_STACK_MAX ];
-#endif
-
-int parse_identifier_list_rest() {
-
-  if ( accept_token( T_COMMA ) ) {
-    int parse_identifier_list();
-    parse_identifier_list();
-    return 1;
-  }
-
-  return 0;
-}
-
-// identifier_list
-//  : IDENTIFIER
-//  | identifier_list ',' IDENTIFIER
-//
-// Note: this has a left-recursive rule, which I changed into two right-recursive
-// productions like this:
-//
-// identifier_list
-//  : IDENTIFIER identifier_list_rest_opt
-//
-// identifier_list_rest
-//  : ',' identifier_list
-//  | empty
-//
-int parse_identifier_list() {
-
-  if ( accept_token( T_IDENTIFIER ) ) {
-    parse_identifier_list_rest();
-    return 1;
-  }
-
-  return 0;
-}
 
 // "An abstract declarator is a declarator without an identifier."
 // We want identifiers, so we'll just discard these.
@@ -507,20 +408,11 @@ int parse_parameter_declaration() {
   int parse_declaration_specifiers();
 
   if ( parse_declaration_specifiers() ) {
+
     int parse_declarator();
-    parse_declarator();
-    parse_direct_abstract_declarator();
-    return 1;
-  }
 
-  return 0;
-}
+    parse_declarator( declaration ) || parse_direct_abstract_declarator();
 
-int parse_parameter_list_rest() {
-
-  if ( accept_token( T_COMMA ) ) {
-    int parse_parameter_list();
-    parse_parameter_list();
     return 1;
   }
 
@@ -544,7 +436,10 @@ int parse_parameter_list_rest() {
 int parse_parameter_list() {
 
   if ( parse_parameter_declaration() ) {
-    parse_parameter_list_rest();
+
+    if ( accept_token( T_COMMA ) )
+      parse_parameter_list();
+
     return 1;
   }
 
@@ -559,9 +454,9 @@ int parse_parameter_type_list() {
   if ( parse_parameter_list() ) {
 
     if ( accept_token( T_COMMA ) ) {
+      // Match ... (three dots)
       while ( accept_token_by_char( '.' ) )
         ;
-      next_token();
     }
 
     return 1;
@@ -581,10 +476,49 @@ int parse_direct_declarator_brackets() {
   return 0;
 }
 
-int parse_direct_declarator_parens() {
+// From what I can tell, this production only exists in C to support old
+// versions of the C language:
+// https://stackoverflow.com/questions/18202232/c-function-with-parameter-without-type-indicator-still-works
+//
+// identifier_list
+//  : IDENTIFIER
+//  | identifier_list ',' IDENTIFIER
+//
+// Note: this has a left-recursive rule, which I changed into two right-recursive
+// productions like this:
+//
+// identifier_list
+//  : IDENTIFIER identifier_list_rest_opt
+//
+// identifier_list_rest
+//  : ',' identifier_list
+//  | empty
+//
+int parse_identifier_list( decltype_t declType ) {
+
+  token_t *token = accept_token( T_IDENTIFIER );
+
+  if ( token ) {
+
+    add_declaration_to_identifier_tree( declType, token->text );
+
+    if ( accept_token( T_COMMA ) )
+      parse_identifier_list( declType );
+
+    return 1;
+  }
+
+  return 0;
+}
+
+int parse_direct_declarator_parens( decltype_t declType ) {
 
   if ( accept_token( T_PAREN_L ) ) {
-    if ( accept_token( T_PAREN_R ) || parse_parameter_type_list() || parse_identifier_list() )
+
+    if ( accept_token( T_PAREN_R ) )
+      return 1;
+
+    if ( parse_parameter_type_list( declType ) || parse_identifier_list( declType ) )
       return 1;
   }
 
@@ -599,40 +533,20 @@ int parse_direct_declarator_parens() {
 //  | direct_declarator '(' parameter_type_list ')'
 //  | direct_declarator '(' identifier_list ')'
 //  | direct_declarator '(' ')'
-int parse_direct_declarator() {
-
-  int haveIdentifier = 0;
-  char *identifierName = token->text;
+int parse_direct_declarator( decltype_t declType ) {
 
   // Parenthesized identifier
   if ( accept_token( T_PAREN_L ) ) {
-    int parse_declarator();
-    haveIdentifier = parse_declarator();
-  }
-  // Identifier
-  else {
-    haveIdentifier = accept_token( T_IDENTIFIER );
+    int parse_declarator( decltype_t );
+    return parse_declarator( declType ) && accept_token( T_PAREN_R );
   }
 
-  if ( haveIdentifier ) {
+  token_t *token = accept_token( T_IDENTIFIER );
 
-    if ( parse_direct_declarator_parens() ) {
-#     if PRINT_FUNCS
-        tree_add_unique( tree, identifierName );
-#     endif
-      return 1;
-    }
-    else if ( parse_direct_declarator_brackets() ) {
-#     if PRINT_VARS
-        tree_add_unique( tree, identifierName );
-#     endif
-      return 1;
-    }
-    else {
-#     if PRINT_VARS
-        tree_add_unique( tree, identifierName );
-#     endif
-    }
+  if ( token ) {
+
+    add_declaration_to_identifier_tree( declType, token->text );
+    parse_direct_declarator_brackets() || parse_direct_declarator_parens( D_PARAM );
 
     return 1;
   }
@@ -660,11 +574,11 @@ int parse_pointer() {
 // declarator
 //  : pointer direct_declarator
 //  | direct_declarator
-int parse_declarator() {
+int parse_declarator( decltype_t declType ) {
 
   parse_pointer();
 
-  if ( parse_direct_declarator() )
+  if ( parse_direct_declarator( declType ) )
     return 1;
 
   return 0;
@@ -681,7 +595,7 @@ int parse_declarator() {
 //
 int parse_init_declarator() {
 
-  if ( parse_declarator() ) {
+  if ( parse_declarator( D_VAR ) ) {
 
     // Discard initializer
     if ( accept_token( T_SINGLE_EQUALS ) ) {
@@ -701,17 +615,6 @@ int parse_init_declarator() {
       }
     }
 
-    return 1;
-  }
-
-  return 0;
-}
-
-int parse_init_declarator_list_rest() {
-
-  if ( accept_token( T_COMMA ) ) {
-    int parse_init_declarator_list();
-    parse_init_declarator_list();
     return 1;
   }
 
@@ -739,7 +642,10 @@ int parse_init_declarator_list_rest() {
 int parse_init_declarator_list() {
 
   if ( parse_init_declarator() ) {
-    parse_init_declarator_list_rest();
+
+    if ( accept_token( T_COMMA ) )
+      parse_init_declarator_list();
+
     return 1;
   }
 
@@ -809,7 +715,7 @@ int parse_function_definition() {
   // declaration specifiers are optional
   parse_declaration_specifiers();
 
-  if ( parse_declarator() ) {
+  if ( parse_declarator( D_FUNC ) ) {
     // C89-style function parameter type declarations
     parse_declaration_list();
     if ( parse_compound_statement() )
@@ -851,6 +757,98 @@ void parse_translation_unit() {
   }
 }
 
+///////////////////////////////////////////////////////////
+// Binary tree for identifier names
+///////////////////////////////////////////////////////////
+
+typedef struct tree_item_t {
+  char *value;
+  struct tree_item_t *left;
+  struct tree_item_t *right;
+} tree_item_t;
+
+tree_item_t tree;
+
+tree_item_t *tree_item_create() {
+
+  tree_item_t *item = malloc( sizeof (tree_item_t) );
+  item->value = NULL;
+  item->left = NULL;
+  item->right = NULL;
+
+  return item;
+}
+
+int tree_item_set_value( tree_item_t *item, const char *str ) {
+
+  int len = strlen( str );
+  char *copy = malloc( len + 1 );
+
+  if ( copy ) {
+    strncpy( copy, str, len );
+    copy[ len ] = '\0';
+    item->value = copy;
+    return 1;
+  }
+
+  return 0;
+}
+
+void tree_add_unique( tree_item_t *tree, const char *str ) {
+
+  // Already have this, not adding duplicates
+  if ( tree->value && strcmp( tree->value, str ) == 0 )
+    return;
+
+  if ( !tree->value ) {
+    tree_item_set_value( tree, str );
+  }
+  else if ( strcmp( str, tree->value ) < 0 ) {
+    if ( !tree->left )
+      tree->left = tree_item_create();
+    tree_add_unique( tree->left, str );
+  }
+  else {
+    if ( !tree->right )
+      tree->right = tree_item_create();
+    tree_add_unique( tree->right, str );
+  }
+}
+
+void _print_tree( tree_item_t *tree, int maxKeyLen, char *currKey, char *prevKey ) {
+
+  if ( tree->left )
+    _print_tree( tree->left, maxKeyLen, currKey, prevKey );
+
+  strncpy( currKey, tree->value, maxKeyLen );
+  currKey[ maxKeyLen ] = '\0';
+
+  if ( strcmp( currKey, prevKey ) != 0 )
+    printf( "-----------------------\n" );
+
+  printf( "%s\n", tree->value );
+  strncpy( prevKey, currKey, maxKeyLen );
+  prevKey[ maxKeyLen ] = '\0';
+
+  if ( tree->right )
+    _print_tree( tree->right, maxKeyLen, currKey, prevKey );
+}
+
+void print_tree( tree_item_t *tree, int maxKeyLen ) {
+
+  if ( !tree->value )
+    return;
+
+  char currKey[ MAX_GROUP_KEY_LENGTH + 1 ] = { 0 };
+  char prevKey[ MAX_GROUP_KEY_LENGTH + 1 ] = { 0 };
+
+  _print_tree( tree, maxKeyLen, currKey, prevKey );
+}
+
+///////////////////////////////////////////////////////////
+// Main
+///////////////////////////////////////////////////////////
+
 int main( int argc, char *argv[] ) {
   // Prevent GCC warnings
   (void) argc;
@@ -870,7 +868,6 @@ int main( int argc, char *argv[] ) {
     }
   }
 
-  tree = tree_item_create();
   parse_translation_unit();
   print_tree( tree, keyLength );
 
