@@ -78,6 +78,11 @@ arrays can be initialized with an initializer-list
   NOTE: C forbids empty initializer braces; at least one initializer is required
     int arr[10] = {}; // wrong, results in compiler warning; in C++ this would be ok
     int arr[10] = {0}; // ok, initializes all elements to 0
+space for vars is allocated in different segments
+  https://stackoverflow.com/a/34981261
+  https://en.wikipedia.org/wiki/Data_segment
+  the `size` command on linux shows the different segments' size of a binary
+  `ulimit -a` tells the limits of the stack and the data segment
 
 the modulus operator % can only be applied on integers, not floats
 using % on negative values results in _machine-dependent_ sign of the result, and using / results truncation towards 0 or away from it; DON'T use these on negative values in C89

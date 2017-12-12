@@ -304,11 +304,12 @@ int parse_pointer() {
 
   consume_space();
 
-  while ( consume_char( '*' ) ) {
+  if ( consume_char( '*' ) ) {
     ret = 1;
     consume_space();
-    while ( next_alphanum_terminal() && terminalType == T_TYPE_QUALIFIER && consume_space() )
-      parse_pointer();
+    while ( next_alphanum_terminal() && terminalType == T_TYPE_QUALIFIER )
+      ;
+    parse_pointer();
   }
 
   return ret;
@@ -318,8 +319,6 @@ int parse_direct_declarator() {
 
   consume_space();
 
-  // We might've already found an identifier when looking for a type qualifier
-  // in parse_pointer()
   if ( terminalType != T_IDENTIFIER )
     next_alphanum_terminal();
 
@@ -359,8 +358,11 @@ int parse_declarator() {
 
   int ret = 0;
 
-  while ( parse_pointer() )
-    ;
+  // If parse_pointer() didn't parse an identifier terminal, and the last
+  // parsed terminal is an identifier, we know that the terminal is from an
+  // earlier identifier and should be invalidated
+  if ( !parse_pointer() && terminalType == T_IDENTIFIER )
+    terminalType = T_OTHER;
 
   if ( parse_direct_declarator() )
     ret = 1;
@@ -431,12 +433,17 @@ int parse_declaration_specifiers() {
 
 int parse_declaration() {
 
-  if ( parse_declaration_specifiers() && consume_space() && parse_init_declarator_list() ) {
-
+  if ( parse_declaration_specifiers() ) {
+    
     consume_space();
+    
+    if ( parse_init_declarator_list() ) {
 
-    if ( consume_char( ';' ) )
-      return 1;
+      consume_space();
+
+      if ( consume_char( ';' ) )
+        return 1;
+    }
   }
 
   return 0;

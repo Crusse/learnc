@@ -21,7 +21,7 @@
 #define DECL_STACK_MAX 32
 #define PRINT_VARS 1
 #define PRINT_PARAMS 1
-#define PRINT_FUNCS 0
+#define PRINT_FUNCS 1
 
 typedef struct tree_item_t {
   char *value;
@@ -133,7 +133,7 @@ typedef struct token_t {
 
 token_t tokenBuffer[ MAX_BACKTRACK_TOKENS ];
 token_t *token = &tokenBuffer[ MAX_BACKTRACK_TOKENS - 1 ];
-token_t *backtrackPoint;
+token_t *backtrackPoint = &tokenBuffer[ MAX_BACKTRACK_TOKENS - 1 ];
 
 void save_backtrack_point() {
   backtrackPoint = token;
@@ -147,6 +147,8 @@ void backtrack() {
   }
 
   token = backtrackPoint;
+
+  printf( "Backtracked to \"%s\"\n", token->text );
 }
 
 int consume_space() {
@@ -219,29 +221,6 @@ int is_type_qualifier( char *token ) {
   return 0;
 }
 
-int is_type_specifier( char *token ) {
-
-  // Doesn't support structs, unions, enums or typedefs
-  static const char *strs[] = {
-    "void",
-    "char",
-    "short",
-    "int",
-    "long",
-    "float",
-    "double",
-    "signed",
-    "unsigned",
-  };
-
-  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
-    if ( strcmp( strs[ i ], token ) == 0 )
-      return 1;
-  }
-
-  return 0;
-}
-
 int is_storage_class_specifier( char *token ) {
 
   // Doesn't support typedef
@@ -265,16 +244,22 @@ void next_token() {
   // There is a token already in the buffer (backtrack() was called earlier)
   if ( token != tokenBuffer + ( MAX_BACKTRACK_TOKENS - 1 ) ) {
     ++token;
+    //printf( "Token (buffered): %2d, %s\n", token->type, token->text );
     return;
   }
 
   // Shift all elements in the buffer to the left (i.e. discard the oldest
   // token)
   memmove( tokenBuffer, tokenBuffer + 1, sizeof tokenBuffer[ 0 ] * ( MAX_BACKTRACK_TOKENS - 1 ) );
-  if ( backtrackPoint != tokenBuffer )
-    --backtrackPoint;
 
-  token->type = EOF;
+  if ( backtrackPoint == tokenBuffer ) {
+    fprintf( stderr, "Reached token buffer limit (oldest token: \"%s\")\n", backtrackPoint->text );
+    exit( 1 );
+  }
+
+  --backtrackPoint;
+
+  token->type = T_EOF;
 
   while ( 1 ) {
 
@@ -288,7 +273,6 @@ void next_token() {
     if ( c == '/' ) {
 
       int nextC = getchar();
-      ungetc( nextC, stdin );
 
       // Multi-line comment
       if ( nextC == '*' ) {
@@ -304,8 +288,9 @@ void next_token() {
         while ( ( c = getchar() ) != EOF && c != '\n' )
           ;
       }
+      // A literal forward slash
       else {
-        // A literal forward slash
+        ungetc( nextC, stdin );
         strcpy( token->text, "/" );
         token->type = T_OTHER;
         break;
@@ -322,8 +307,7 @@ void next_token() {
         c = getchar();
       }
 
-      // We won't save strings to reduce memory usage
-      token->text[ 0 ] = '\0';
+      strcpy( token->text, "<string>" );
       token->type = T_OTHER;
       break;
     }
@@ -334,11 +318,6 @@ void next_token() {
 
       for ( ; ; ++i ) {
 
-        c = getchar();
-
-        if ( c == EOF )
-          break;
-
         // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
         if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
           ungetc( c, stdin );
@@ -348,20 +327,20 @@ void next_token() {
         if ( i >= MAX_TOKEN_LEN ) {
           token->text[ MAX_TOKEN_LEN ] = '\0';
           fprintf( stderr, "Reached MAX_TOKEN_LEN for the token \"%s\"\n", token->text );
+          exit( 1 );
         }
 
         token->text[ i ] = c;
+
+        c = getchar();
+        if ( c == EOF )
+          break;
       }
 
       token->text[ i ] = '\0';
 
-      // Empty string
-      if ( !token->text[ 0 ] )
-        token->type = T_OTHER;
-      else if ( is_type_qualifier( token->text ) )
+      if ( is_type_qualifier( token->text ) )
         token->type = T_TYPE_QUALIFIER;
-      else if ( is_type_specifier( token->text ) )
-        token->type = T_TYPE_SPECIFIER;
       else if ( is_storage_class_specifier( token->text ) )
         token->type = T_STORAGE_CLASS_SPECIFIER;
       else
@@ -409,14 +388,19 @@ void next_token() {
       break;
     }
   }
+
+  //printf( "Token: %13d, %s\n", token->type, token->text );
 }
 
 int accept_token( token_type_t type ) {
 
   if ( token->type == type ) {
+    printf( "Accepted %d, \"%s\"\n", token->type, token->text );
     next_token();
     return 1;
   }
+
+  printf( "Rejected %d, \"%s\" (looking for %d)\n", token->type, token->text, type );
 
   return 0;
 }
@@ -618,6 +602,7 @@ int parse_direct_declarator_parens() {
 int parse_direct_declarator() {
 
   int haveIdentifier = 0;
+  char *identifierName = token->text;
 
   // Parenthesized identifier
   if ( accept_token( T_PAREN_L ) ) {
@@ -633,19 +618,19 @@ int parse_direct_declarator() {
 
     if ( parse_direct_declarator_parens() ) {
 #     if PRINT_FUNCS
-        tree_add_unique( tree, token->text );
+        tree_add_unique( tree, identifierName );
 #     endif
       return 1;
     }
     else if ( parse_direct_declarator_brackets() ) {
 #     if PRINT_VARS
-        tree_add_unique( tree, token->text );
+        tree_add_unique( tree, identifierName );
 #     endif
       return 1;
     }
     else {
 #     if PRINT_VARS
-        tree_add_unique( tree, token->text );
+        tree_add_unique( tree, identifierName );
 #     endif
     }
 
@@ -767,8 +752,18 @@ int parse_init_declarator_list() {
 //  | type_qualifier declaration_specifiers_opt
 int parse_declaration_specifiers() {
 
+  int hasTypeSpecifier = ( token != tokenBuffer && ( token - 1 )->type == T_IDENTIFIER );
+
   if ( accept_token( T_STORAGE_CLASS_SPECIFIER ) ||
-    accept_token( T_TYPE_SPECIFIER ) ||
+    // To support typedef'd types, we accept any valid identifier as a type
+    // specifier (rather than only looking for built-in types like "int" etc.)
+    //
+    // To support typedef's type names, we lexed the type as a T_IDENTIFIER,
+    // in next_token(). If there are no pointer after such a token, but another
+    // T_IDENTIFIER, we'll assume that the first T_IDENTIFIER is actually
+    // a T_TYPE_SPECIFIER.
+    //
+    ( !hasTypeSpecifier && accept_token( T_IDENTIFIER ) ) ||
     accept_token( T_TYPE_QUALIFIER ) )
   {
     parse_declaration_specifiers();
@@ -810,6 +805,8 @@ int parse_compound_statement() {
 
 int parse_function_definition() {
 
+  // C89 allows functions without return type (they default to int), so the
+  // declaration specifiers are optional
   parse_declaration_specifiers();
 
   if ( parse_declarator() ) {
@@ -835,13 +832,21 @@ void parse_translation_unit() {
 
     if ( !parse_function_definition() ) {
 
+      printf( "Not a function definition\n" );
       backtrack();
 
       if ( !parse_declaration() ) {
+        printf( "Not a declaration\n" );
         backtrack();
         next_token();
         save_backtrack_point();
       }
+      else {
+        printf( "Found declaration\n" );
+      }
+    }
+    else {
+      printf( "Found function definition\n" );
     }
   }
 }
