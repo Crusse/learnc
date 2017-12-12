@@ -350,4 +350,7 @@ exercise 6-2 can be solved with a recursive descent parser
   https://en.wikipedia.org/wiki/The_lexer_hack
   https://web.stanford.edu/class/archive/cs/cs143/cs143.1128/
   http://holub.com/compiler/
+  http://blog.reverberate.org/2013/09/ll-and-lr-in-context-why-parsing-tools.html
+  https://stackoverflow.com/questions/1044600/difference-between-an-ll-and-recursive-descent-parser
   interesting history about C, B and BCPL: https://www.jslint.com/chistory.html
+

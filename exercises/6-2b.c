@@ -1,7 +1,13 @@
 // Same as 6-2.c, but supports function parameters. This implementation also
 // has a parser that I consciously tried to make a recursive descent, top-down,
-// LL(1) parser (whereas 6-2.c was totally ad-hoc) although I'm still not totally
-// sure if that's how you'd describe this parser.
+// backtracking parser (whereas 6-2.c was totally ad-hoc) although I'm still
+// not totally sure if that's how you'd describe this parser.
+//
+// "Recursive-descent can handle any grammar which is LL(*) (that is, unlimited
+// lookahead) as well as a small set of ambiguous grammars. This is because
+// recursive-descent is actually a directly-encoded implementation of PEGs, or
+// Parser Expression Grammar(s)."
+//   https://stackoverflow.com/questions/1044600/difference-between-an-ll-and-recursive-descent-parser
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,9 +16,8 @@
 
 #define DEFAULT_GROUP_KEY_LENGTH 6
 #define MAX_GROUP_KEY_LENGTH 31
-#define MAX_TOKEN_LEN 1023
-#define TOKEN_BUFFER_MAX 2
-#define TOKEN_BUFFER_USE_MALLOC 0
+#define MAX_TOKEN_LEN 127
+#define MAX_BACKTRACK_TOKENS 512
 #define DECL_STACK_MAX 32
 #define PRINT_VARS 1
 #define PRINT_PARAMS 1
@@ -100,7 +105,7 @@ void print_tree( tree_item_t *tree, int maxKeyLen ) {
   _print_tree( tree, maxKeyLen, currKey, prevKey );
 }
 
-enum token_type_t {
+typedef enum token_type_t {
   T_EOF,
   T_OTHER,
   T_TYPE_SPECIFIER,
@@ -110,42 +115,38 @@ enum token_type_t {
   T_PAREN_R,
   T_BRACKET_L,
   T_BRACKET_R,
+  T_BRACE_L,
+  T_BRACE_R,
   T_SEMICOLON,
   T_COMMA,
   T_ASTERISK,
   T_SINGLE_EQUALS,
   T_IDENTIFIER,
-};
+} token_type_t;
 
 tree_item_t *tree;
 
 typedef struct token_t {
-  int type;
-  char value[ MAX_TOKEN_LEN + 1 ];
+  token_type_t type;
+  char text[ MAX_TOKEN_LEN + 1 ];
 } token_t;
 
-#if TOKEN_BUFFER_USE_MALLOC
+token_t tokenBuffer[ MAX_BACKTRACK_TOKENS ];
+token_t *token = &tokenBuffer[ MAX_BACKTRACK_TOKENS - 1 ];
+token_t *backtrackPoint;
 
-// Somewhat like a ring buffer
-token_t *tokenBuffer[ TOKEN_BUFFER_MAX ];
-// One of the elements of tokenBuffer
-token_t *token = tokenBuffer[ TOKEN_BUFFER_MAX - 1 ];
+void save_backtrack_point() {
+  backtrackPoint = token;
+}
 
-#else
+void backtrack() {
 
-token_t tokenBuffer[ TOKEN_BUFFER_MAX ];
-token_t *token = &tokenBuffer[ TOKEN_BUFFER_MAX - 1 ];
-
-#endif
-
-void backtrack_token() {
-
-  if ( !token || token == tokenBuffer[ 0 ] ) {
-    fprintf( stderr, "Nothing to backtrack_token() to\n" );
+  if ( !backtrackPoint || backtrackPoint == tokenBuffer ) {
+    fprintf( stderr, "Cannot backtrack beyond token \"%s\"\n", ( backtrackPoint ? backtrackPoint->text : "" ) );
     exit( 1 );
   }
 
-  --token;
+  token = backtrackPoint;
 }
 
 int consume_space() {
@@ -165,10 +166,8 @@ int consume_space() {
   return ret;
 }
 
-void consume_until_bracket_end( char endChar ) {
+void discard_bracket_until_char( char endChar ) {
 
-  int nestingLevel = 0;
-  char c;
   char startChar;
 
   if ( endChar == ')' )
@@ -181,198 +180,24 @@ void consume_until_bracket_end( char endChar ) {
     fprintf( stderr, "Invalid endChar '%c'\n", endChar );
     exit( 1 );
   }
+  
+  int nestingLevel = 0;
+  char tokenChar;
+  void next_token();
+  next_token();
 
-  while ( ( c = getchar() ) != EOF && ( c != endChar || nestingLevel > 0 ) ) {
-    if ( c == startChar )
+  while ( token->type != T_EOF ) {
+    tokenChar = token->text[ 0 ];
+    if ( tokenChar == endChar && nestingLevel == 0 ) {
+      next_token();
+      break;
+    }
+    if ( tokenChar == startChar )
       ++nestingLevel;
-    else if ( c == endChar )
+    else if ( tokenChar == endChar )
       --nestingLevel;
-  }
-}
-
-void next_token() {
-
-  // There is a token already in the buffer (backtrack_token() was called earlier)
-#if TOKEN_BUFFER_USE_MALLOC
-  if ( token != tokenBuffer[ TOKEN_BUFFER_MAX - 1 ] ) {
-#else
-  if ( token != tokenBuffer + ( TOKEN_BUFFER_MAX - 1 ) ) {
-#endif
-    ++token;
-    return;
-  }
-
-#if TOKEN_BUFFER_USE_MALLOC
-  free( tokenBuffer[ 0 ] );
-  token = malloc( sizeof (token_t) );
-#endif
-
-  // Shift all elements in the buffer to the left (i.e. discard the oldest
-  // token)
-  memmove( tokenBuffer, tokenBuffer + 1, sizeof tokenBuffer[ 0 ] * ( TOKEN_BUFFER_MAX - 1 ) );
-
-#if TOKEN_BUFFER_USE_MALLOC
-  tokenBuffer[ TOKEN_BUFFER_MAX - 1 ] = token;
-#endif
-
-  token->type = EOF;
-
-  while ( 1 ) {
-
-    consume_space();
-
-    char c = getchar();
-
-    if ( c == EOF )
-      break;
-
-    if ( c == '/' ) {
-
-      char nextC = getchar();
-      ungetc( nextC, stdin );
-
-      // Multi-line comment
-      if ( nextC == '*' ) {
-        char lastChar = '\0';
-        while ( ( c = getchar() ) != EOF ) {
-          if ( lastChar == '*' && c == '/' )
-            break;
-          lastChar = c;
-        }
-      }
-      // Single-line comment
-      else if ( nextC == '/' ) {
-        while ( ( c = getchar() ) != EOF && c != '\n' )
-          ;
-      }
-      else {
-        // A literal forward slash
-        strcpy( token->value, "/" );
-        token->type = T_OTHER;
-        break;
-      }
-    }
-    // String or character literal
-    else if ( c == '"' || c == '\'' ) {
-
-      char quoteChar = c;
-      int isEscaping = 0;
-      while ( ( c = getchar() ) != EOF && ( c != quoteChar || isEscaping ) ) {
-        if ( isEscaping )
-          isEscaping = 0;
-        else if ( c == '\\' )
-          isEscaping = 1;
-      }
-
-      token->value[ 0 ] = '\0';
-      token->type = T_OTHER;
-      break;
-    }
-    // [a-zA-Z_]
-    else if ( is_identifier_start_char( c ) ) {
-
-      int i = 0;
-
-      for ( ; ; ++i ) {
-
-        c = getchar();
-
-        if ( c == EOF )
-          break;
-
-        // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
-        if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
-          ungetc( c, stdin );
-          break;
-        }
-
-        if ( i >= MAX_TOKEN_LEN ) {
-          token->value[ MAX_TOKEN_LEN ] = '\0';
-          fprintf( stderr, "Reached MAX_TOKEN_LEN for the token \"%s\"\n", token->value );
-        }
-
-        token->value[ i ] = c;
-      }
-
-      token->value[ i ] = '\0';
-
-      // Empty string
-      if ( !token->value[ 0 ] )
-        token->type = T_OTHER;
-      else if ( is_type_qualifier( token->value ) )
-        token->type = T_TYPE_QUALIFIER;
-      else if ( is_type_specifier( token->value ) )
-        token->type = T_TYPE_SPECIFIER;
-      else if ( is_storage_class_specifier( token->value ) )
-        token->type = T_STORAGE_CLASS_SPECIFIER;
-      else
-        token->type = T_IDENTIFIER;
-
-      break;
-    }
-    else {
-
-      token->value[ 0 ] = c;
-      token->value[ 1 ] = '\0';
-
-      if ( c == ';' )
-        token->type = T_SEMICOLON;
-      else if ( c == ',' )
-        token->type = T_COMMA;
-      else if ( c == '*' )
-        token->type = T_ASTERISK;
-      else if ( c == '(' )
-        token->type = T_PAREN_L;
-      else if ( c == ')' )
-        token->type = T_PAREN_R;
-      else if ( c == '[' )
-        token->type = T_BRACKET_L;
-      else if ( c == ']' )
-        token->type = T_BRACKET_R;
-      else if ( c == '=' ) {
-        char nextC = getchar();
-        if ( nextC == '=' ) {
-          strcpy( token->value, "==" );
-          token->type = T_OTHER;
-        }
-        else {
-          ungetc( nextC, stdin );
-          token->type = T_SINGLE_EQUALS;
-        }
-      }
-      else
-        token->type = T_OTHER;
-
-      break;
-    }
-  }
-}
-
-FIXME
-int consume_char( char toConsume ) {
-
-  char c = getchar();
-
-  if ( c == toConsume )
-    return 1;
-
-  ungetc( c, stdin );
-
-  return 0;
-}
-
-int accept_token( token_type_t type ) {
-
-  if ( token->type == type ) {
     next_token();
-    return 1;
   }
-
-  return 0;
-}
-
-int peek_token( token_type_t type ) {
-  return token->type == type;
 }
 
 int is_identifier_start_char( char c ) {
@@ -435,6 +260,182 @@ int is_storage_class_specifier( char *token ) {
   return 0;
 }
 
+void next_token() {
+
+  // There is a token already in the buffer (backtrack() was called earlier)
+  if ( token != tokenBuffer + ( MAX_BACKTRACK_TOKENS - 1 ) ) {
+    ++token;
+    return;
+  }
+
+  // Shift all elements in the buffer to the left (i.e. discard the oldest
+  // token)
+  memmove( tokenBuffer, tokenBuffer + 1, sizeof tokenBuffer[ 0 ] * ( MAX_BACKTRACK_TOKENS - 1 ) );
+  if ( backtrackPoint != tokenBuffer )
+    --backtrackPoint;
+
+  token->type = EOF;
+
+  while ( 1 ) {
+
+    consume_space();
+
+    int c = getchar();
+
+    if ( c == EOF )
+      break;
+
+    if ( c == '/' ) {
+
+      int nextC = getchar();
+      ungetc( nextC, stdin );
+
+      // Multi-line comment
+      if ( nextC == '*' ) {
+        int lastChar = '\0';
+        while ( ( c = getchar() ) != EOF ) {
+          if ( lastChar == '*' && c == '/' )
+            break;
+          lastChar = c;
+        }
+      }
+      // Single-line comment
+      else if ( nextC == '/' ) {
+        while ( ( c = getchar() ) != EOF && c != '\n' )
+          ;
+      }
+      else {
+        // A literal forward slash
+        strcpy( token->text, "/" );
+        token->type = T_OTHER;
+        break;
+      }
+    }
+    // String or character literal
+    else if ( c == '"' || c == '\'' ) {
+
+      int quoteChar = c;
+      c = getchar();
+      while ( c != EOF && c != quoteChar ) {
+        if ( c == '\\' )
+          getchar();
+        c = getchar();
+      }
+
+      // We won't save strings to reduce memory usage
+      token->text[ 0 ] = '\0';
+      token->type = T_OTHER;
+      break;
+    }
+    // [a-zA-Z_]
+    else if ( is_identifier_start_char( c ) ) {
+
+      int i = 0;
+
+      for ( ; ; ++i ) {
+
+        c = getchar();
+
+        if ( c == EOF )
+          break;
+
+        // A valid var name looks like ^[a-zA-Z_][a-zA-Z0-9_]*$
+        if ( !is_identifier_start_char( c ) && ( i == 0 || !( c >= '0' && c <= '9' ) ) ) {
+          ungetc( c, stdin );
+          break;
+        }
+
+        if ( i >= MAX_TOKEN_LEN ) {
+          token->text[ MAX_TOKEN_LEN ] = '\0';
+          fprintf( stderr, "Reached MAX_TOKEN_LEN for the token \"%s\"\n", token->text );
+        }
+
+        token->text[ i ] = c;
+      }
+
+      token->text[ i ] = '\0';
+
+      // Empty string
+      if ( !token->text[ 0 ] )
+        token->type = T_OTHER;
+      else if ( is_type_qualifier( token->text ) )
+        token->type = T_TYPE_QUALIFIER;
+      else if ( is_type_specifier( token->text ) )
+        token->type = T_TYPE_SPECIFIER;
+      else if ( is_storage_class_specifier( token->text ) )
+        token->type = T_STORAGE_CLASS_SPECIFIER;
+      else
+        token->type = T_IDENTIFIER;
+
+      break;
+    }
+    else {
+
+      token->text[ 0 ] = c;
+      token->text[ 1 ] = '\0';
+
+      if ( c == ';' )
+        token->type = T_SEMICOLON;
+      else if ( c == ',' )
+        token->type = T_COMMA;
+      else if ( c == '*' )
+        token->type = T_ASTERISK;
+      else if ( c == '(' )
+        token->type = T_PAREN_L;
+      else if ( c == ')' )
+        token->type = T_PAREN_R;
+      else if ( c == '[' )
+        token->type = T_BRACKET_L;
+      else if ( c == ']' )
+        token->type = T_BRACKET_R;
+      else if ( c == '{' )
+        token->type = T_BRACE_L;
+      else if ( c == '}' )
+        token->type = T_BRACE_R;
+      else if ( c == '=' ) {
+        char nextC = getchar();
+        if ( nextC == '=' ) {
+          strcpy( token->text, "==" );
+          token->type = T_OTHER;
+        }
+        else {
+          ungetc( nextC, stdin );
+          token->type = T_SINGLE_EQUALS;
+        }
+      }
+      else
+        token->type = T_OTHER;
+
+      break;
+    }
+  }
+}
+
+int accept_token( token_type_t type ) {
+
+  if ( token->type == type ) {
+    next_token();
+    return 1;
+  }
+
+  return 0;
+}
+
+int accept_token_by_char( char c ) {
+
+  if ( token->text[ 0 ] == c ) {
+    next_token();
+    return 1;
+  }
+
+  return 0;
+}
+
+int peek_token( token_type_t type ) {
+  return token->type == type;
+}
+
+#if 0
 typedef enum decltype_t {
   D_IDENTIFIER,
   D_POINTER,
@@ -448,10 +449,12 @@ typedef struct decl_t {
 } decl_t;
 
 decl_t *declStack[ DECL_STACK_MAX ];
+#endif
 
 int parse_identifier_list_rest() {
 
   if ( accept_token( T_COMMA ) ) {
+    int parse_identifier_list();
     parse_identifier_list();
     return 1;
   }
@@ -483,17 +486,111 @@ int parse_identifier_list() {
   return 0;
 }
 
+// "An abstract declarator is a declarator without an identifier."
+// We want identifiers, so we'll just discard these.
+//
+// direct_abstract_declarator
+// 	: '(' abstract_declarator ')'
+// 	| '[' ']'
+// 	| '[' constant_expression ']'
+// 	| direct_abstract_declarator '[' ']'
+// 	| direct_abstract_declarator '[' constant_expression ']'
+// 	| '(' ')'
+// 	| '(' parameter_type_list ')'
+// 	| direct_abstract_declarator '(' ')'
+// 	| direct_abstract_declarator '(' parameter_type_list ')'
+//
+int parse_direct_abstract_declarator() {
+
+  if ( accept_token( T_PAREN_L ) ) {
+    discard_bracket_until_char( ')' );
+    return 1;
+  }
+  else if ( accept_token( T_BRACKET_L ) ) {
+    discard_bracket_until_char( ']' );
+    return 1;
+  }
+
+  return 0;
+}
+
+// parameter_declaration
+//  : declaration_specifiers declarator
+//  | declaration_specifiers abstract_declarator
+//  | declaration_specifiers
+int parse_parameter_declaration() {
+
+  int parse_declaration_specifiers();
+
+  if ( parse_declaration_specifiers() ) {
+    int parse_declarator();
+    parse_declarator();
+    parse_direct_abstract_declarator();
+    return 1;
+  }
+
+  return 0;
+}
+
+int parse_parameter_list_rest() {
+
+  if ( accept_token( T_COMMA ) ) {
+    int parse_parameter_list();
+    parse_parameter_list();
+    return 1;
+  }
+
+  return 0;
+}
+
+// parameter_list
+//  : parameter_declaration
+//  | parameter_list ',' parameter_declaration
+//
+// Note: this has a left-recursive rule, which I changed into two right-recursive
+// productions like this:
+//
+// parameter_list
+//  : parameter_declaration parameter_list_rest_opt
+//
+// parameter_list_rest
+//  : ',' parameter_list
+//  | empty
+//
+int parse_parameter_list() {
+
+  if ( parse_parameter_declaration() ) {
+    parse_parameter_list_rest();
+    return 1;
+  }
+
+  return 0;
+}
+
+// parameter_type_list
+//  : parameter_list
+//  | parameter_list ',' ELLIPSIS
 int parse_parameter_type_list() {
 
+  if ( parse_parameter_list() ) {
 
+    if ( accept_token( T_COMMA ) ) {
+      while ( accept_token_by_char( '.' ) )
+        ;
+      next_token();
+    }
+
+    return 1;
+  }
+
+  return 0;
 }
 
 int parse_direct_declarator_brackets() {
 
   if ( accept_token( T_BRACKET_L ) ) {
     // Discard everything inside brackets
-    consume_until_bracket_end( ']' );
-    next_token();
+    discard_bracket_until_char( ']' );
     return 1;
   }
 
@@ -529,20 +626,27 @@ int parse_direct_declarator() {
   }
   // Identifier
   else {
-    //FIXME tree_add_unique( tree, token->value );
     haveIdentifier = accept_token( T_IDENTIFIER );
   }
 
   if ( haveIdentifier ) {
 
     if ( parse_direct_declarator_parens() ) {
+#     if PRINT_FUNCS
+        tree_add_unique( tree, token->text );
+#     endif
       return 1;
     }
     else if ( parse_direct_declarator_brackets() ) {
+#     if PRINT_VARS
+        tree_add_unique( tree, token->text );
+#     endif
       return 1;
     }
     else {
-
+#     if PRINT_VARS
+        tree_add_unique( tree, token->text );
+#     endif
     }
 
     return 1;
@@ -586,7 +690,10 @@ int parse_declarator() {
 //  | declarator '=' initializer
 //
 // Note: the left-most symbol for both rules is the same. We always try the
-// longest rule first, like (f)lex does: https://stackoverflow.com/a/8409541
+// longest rule, like (f)lex does:
+// https://stackoverflow.com/a/8409541
+// https://en.wikipedia.org/wiki/Maximal_munch
+//
 int parse_init_declarator() {
 
   if ( parse_declarator() ) {
@@ -594,18 +701,19 @@ int parse_init_declarator() {
     // Discard initializer
     if ( accept_token( T_SINGLE_EQUALS ) ) {
 
-      char c = '\0';
       int initListNesting = 0;
 
-      while ( ( c = getchar() ) != EOF && ( ( c != ';' && c != ',' ) || initListNesting > 0 ) ) {
-        if ( c == '{' )
+      while ( token->type != T_EOF ) {
+        if ( ( token->type == T_COMMA || token->type == T_SEMICOLON ) && initListNesting == 0 ) {
+          next_token();
+          break;
+        }
+        if ( token->type == T_BRACE_L )
           ++initListNesting;
-        else if ( c == '}' )
+        else if ( token->type == T_BRACE_R )
           --initListNesting;
+        next_token();
       }
-
-      if ( c )
-        ungetc( c, stdin );
     }
 
     return 1;
@@ -617,6 +725,7 @@ int parse_init_declarator() {
 int parse_init_declarator_list_rest() {
 
   if ( accept_token( T_COMMA ) ) {
+    int parse_init_declarator_list();
     parse_init_declarator_list();
     return 1;
   }
@@ -681,13 +790,59 @@ int parse_declaration() {
   return 0;
 }
 
+int parse_declaration_list() {
+
+  if ( parse_declaration() ) {
+    parse_declaration_list();
+    return 1;
+  }
+
+  return 0;
+}
+
+int parse_compound_statement() {
+
+  if ( accept_token( T_BRACE_L ) )
+    return 1;
+
+  return 0;
+}
+
+int parse_function_definition() {
+
+  parse_declaration_specifiers();
+
+  if ( parse_declarator() ) {
+    // C89-style function parameter type declarations
+    parse_declaration_list();
+    if ( parse_compound_statement() )
+      return 1;
+  }
+
+  return 0;
+}
+
 void parse_translation_unit() {
 
+  next_token();
+
   while ( 1 ) {
-    next_token();
+
     if ( token->type == T_EOF )
       break;
-    parse_declaration();
+
+    save_backtrack_point();
+
+    if ( !parse_function_definition() ) {
+
+      backtrack();
+
+      if ( !parse_declaration() ) {
+        backtrack();
+        next_token();
+        save_backtrack_point();
+      }
+    }
   }
 }
 
@@ -711,7 +866,7 @@ int main( int argc, char *argv[] ) {
   }
 
   tree = tree_item_create();
-  populate_tree();
+  parse_translation_unit();
   print_tree( tree, keyLength );
 
   return 0;
