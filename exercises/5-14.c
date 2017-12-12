@@ -197,7 +197,7 @@ int readlines(char *lineptr[], int maxlines)
   char *p, line[MAXLEN];
   
   nlines = 0;
-  while ((len = _getline(line, MAXLEN)) > 0)
+  while ((len = _getline(line, MAXLEN)) > 0) {
     if (nlines >= maxlines || (p = alloc(len)) == NULL)
       return -1;
     else
@@ -206,7 +206,8 @@ int readlines(char *lineptr[], int maxlines)
       strcpy(p, line);
       lineptr[nlines++] = p;
     }
-    return nlines;
+  }
+  return nlines;
 }
 
 /* getline: read a line into s, return length */
