@@ -7,6 +7,13 @@
 // printed as function declarations/definitions). 6-2 only asks for variables
 // names, though, so therefore PRINT_FUNCS is 0.
 //
+// If I wrote this again, I would use a ring buffer, where I would not do a
+// memmove() over the whole tokenBuffer, but would instead just move pointers
+// around, and use modulo arithmetic to loop around the tokenBuffer. And instead
+// of using a tokenBuffer, I would probably just use a character buffer and
+// recompute the tokenization after backtracking, as that seems a lot simpler
+// in terms of handling backtracking + discard_bracket_until_char().
+//
 // "Recursive-descent can handle any grammar which is LL(*) (that is, unlimited
 // lookahead) as well as a small set of ambiguous grammars. This is because
 // recursive-descent is actually a directly-encoded implementation of PEGs, or
@@ -20,8 +27,12 @@
 
 #define DEFAULT_GROUP_KEY_LENGTH 6
 #define MAX_GROUP_KEY_LENGTH 31
-#define MAX_TOKEN_LEN 127
-#define MAX_BACKTRACK_TOKENS 512
+#define MAX_TOKEN_LEN 63
+// MAX_BACKTRACK_TOKENS might not be large enough for cases where we have to
+// backtrack a long way (structs with many initialized elements are a problem).
+// To increase this, we should make tokenBuffer contain _pointers_ to token_t
+// objects. Or get rid of tokenBuffer altogether, and just use a char buffer.
+#define MAX_BACKTRACK_TOKENS 4096
 #define PRINT_VARS 1
 #define PRINT_FUNCS 0
 #define PRINT_PARAMS 1
@@ -107,7 +118,6 @@ void discard_bracket_until_char( char endChar ) {
   int nestingLevel = 0;
   char tokenChar;
   void next_token();
-  next_token();
 
   while ( token->type != T_EOF ) {
     tokenChar = token->text[ 0 ];
@@ -197,7 +207,19 @@ void next_token() {
   memmove( tokenBuffer, tokenBuffer + 1, sizeof tokenBuffer[ 0 ] * ( MAX_BACKTRACK_TOKENS - 1 ) );
 
   if ( backtrackPoint == tokenBuffer ) {
-    fprintf( stderr, "Reached token buffer limit (oldest token: \"%s\")\n", backtrackPoint->text );
+
+    fprintf( stderr, "Token buffer stack:\n" );
+    token_t *tracePoint = tokenBuffer;
+
+    while ( tracePoint != &tokenBuffer[ MAX_BACKTRACK_TOKENS ] ) {
+      fprintf( stderr, "%s", tracePoint->text );
+      if ( tracePoint == backtrackPoint )
+        fprintf( stderr, " <-------------- Backtrack point" );
+      fprintf( stderr, "\n" );
+      ++tracePoint;
+    }
+
+    fprintf( stderr, "Reached token buffer limit (see stack above)\n" );
     exit( 1 );
   }
 
@@ -271,7 +293,7 @@ void next_token() {
         if ( i >= MAX_TOKEN_LEN ) {
           token->text[ MAX_TOKEN_LEN ] = '\0';
           fprintf( stderr, "Reached MAX_TOKEN_LEN for the token \"%s\"\n", token->text );
-          exit( 1 );
+          break;
         }
 
         token->text[ i ] = c;
@@ -660,7 +682,6 @@ int parse_init_declarator() {
 
       while ( token->type != T_EOF ) {
         if ( ( token->type == T_COMMA || token->type == T_SEMICOLON ) && initListNesting == 0 ) {
-          next_token();
           break;
         }
         if ( token->type == T_BRACE_L )
