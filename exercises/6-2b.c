@@ -3,6 +3,10 @@
 // backtracking parser (whereas 6-2.c was totally ad-hoc), although I'm still
 // not totally sure if that's how you'd describe this parser.
 //
+// If PRINT_FUNCS = 1, there are some false-positives (function _calls_ are
+// printed as function declarations/definitions). 6-2 only asks for variables
+// names, though, so therefore PRINT_FUNCS is 0.
+//
 // "Recursive-descent can handle any grammar which is LL(*) (that is, unlimited
 // lookahead) as well as a small set of ambiguous grammars. This is because
 // recursive-descent is actually a directly-encoded implementation of PEGs, or
@@ -19,8 +23,8 @@
 #define MAX_TOKEN_LEN 127
 #define MAX_BACKTRACK_TOKENS 512
 #define PRINT_VARS 1
+#define PRINT_FUNCS 0
 #define PRINT_PARAMS 1
-#define PRINT_FUNCS 1
 
 typedef enum token_type_t {
   T_EOF,
@@ -65,7 +69,7 @@ void backtrack() {
 
   token = backtrackPoint;
 
-  printf( "Backtracked to \"%s\"\n", token->text );
+  //printf( "Backtracked to \"%s\"\n", token->text );
 }
 
 int consume_space() {
@@ -156,12 +160,35 @@ int is_storage_class_specifier( char *token ) {
   return 0;
 }
 
+/**
+ * This function is a bit of a hack. If we had proper typedef processing we
+ * wouldn't need this, but we currently do, as we detect type specifiers (int
+ * etc.) as generic identifiers.
+ */
+int is_invalid_identifier( char *token ) {
+
+  static const char *strs[] = {
+    // Too lazy to add all of the keywords right now
+    "typedef",
+    "return",
+    "if",
+    "else",
+  };
+
+  for ( size_t i = 0; i < sizeof strs / ( sizeof *strs ); ++i ) {
+    if ( strcmp( strs[ i ], token ) == 0 )
+      return 1;
+  }
+
+  return 0;
+}
+
 void next_token() {
 
   // There is a token already in the buffer (backtrack() was called earlier)
   if ( token != tokenBuffer + ( MAX_BACKTRACK_TOKENS - 1 ) ) {
     ++token;
-    printf( "Token (buffered): %2d, %s\n", token->type, token->text );
+    //printf( "Token (buffered): %2d, %s\n", token->type, token->text );
     return;
   }
 
@@ -260,6 +287,8 @@ void next_token() {
         token->type = T_TYPE_QUALIFIER;
       else if ( is_storage_class_specifier( token->text ) )
         token->type = T_STORAGE_CLASS_SPECIFIER;
+      else if ( is_invalid_identifier( token->text ) )
+        token->type = T_OTHER;
       else
         token->type = T_IDENTIFIER;
 
@@ -312,12 +341,12 @@ void next_token() {
 token_t *accept_token( token_type_t type ) {
 
   if ( token->type == type ) {
-    printf( "Accepted %d, \"%s\"\n", token->type, token->text );
+    //printf( "Accepted %d, \"%s\"\n", token->type, token->text );
     next_token();
     return token - 1;
   }
 
-  printf( "Rejected %d, \"%s\" (looking for %d)\n", token->type, token->text, type );
+  //printf( "Rejected %d, \"%s\" (looking for %d)\n", token->type, token->text, type );
 
   return NULL;
 }
@@ -332,29 +361,50 @@ token_t *accept_token_by_char( char c ) {
   return NULL;
 }
 
-typedef struct tree_item_t;
-tree_item_t tree;
-void tree_add_unique( tree_item_t *, const char * );
+int peek_token( token_type_t type ) {
+  return token->type == type;
+}
+
+struct tree_item_t;
+struct tree_item_t tree;
+void tree_add_unique( struct tree_item_t *, const char * );
+
+typedef enum decltype_t {
+  D_VAR,
+  D_PARAM,
+  D_FUNC_DEF,
+  D_FUNC_DECL,
+} decltype_t;
+
+typedef struct declaration_t {
+  decltype_t type;
+  char identifier[ MAX_TOKEN_LEN + 1 ];
+} declaration_t;
 
 void add_declaration_to_identifier_tree( decltype_t declType, char *identifier ) {
 
-  char *str[ MAX_TOKEN_LEN + 1 + 20 ];
+#define MAX_TYPE_INFO_CHARS 30
+
+  char str[ MAX_TOKEN_LEN + 1 + MAX_TYPE_INFO_CHARS ] = { 0 };
+  strncpy( str, identifier, MAX_TOKEN_LEN );
 
   if ( 0 ) {}
 
 #if PRINT_VARS
-  else if ( declType = D_VAR )
-    tree_add_unique( &tree, identifier );
+  else if ( declType == D_VAR )
+    tree_add_unique( &tree, strncat( str, " (var)", MAX_TYPE_INFO_CHARS ) );
 #endif
 
 #if PRINT_PARAMS
-  else if ( declType = D_PARAM )
-    tree_add_unique( &tree, identifier );
+  else if ( declType == D_PARAM )
+    tree_add_unique( &tree, strncat( str, " (parameter)", MAX_TYPE_INFO_CHARS ) );
 #endif
 
 #if PRINT_FUNCS
-  else if ( declType = D_FUNC )
-    tree_add_unique( &tree, identifier );
+  else if ( declType == D_FUNC_DEF )
+    tree_add_unique( &tree, strncat( str, " (function definition)", MAX_TYPE_INFO_CHARS ) );
+  else if ( declType == D_FUNC_DECL )
+    tree_add_unique( &tree, strncat( str, " (function declaration)", MAX_TYPE_INFO_CHARS ) );
 #endif
 }
 
@@ -364,12 +414,6 @@ void add_declaration_to_identifier_tree( decltype_t declType, char *identifier )
 // tokens. The most important function is parse_direct_declarator(),
 // where we collect identifier names.
 ///////////////////////////////////////////////////////////
-
-typedef enum decltype_t {
-  D_VAR,
-  D_FUNC,
-  D_PARAM,
-} decltype_t;
 
 // "An abstract declarator is a declarator without an identifier."
 // We want identifiers, so we'll just discard these.
@@ -409,9 +453,13 @@ int parse_parameter_declaration() {
 
   if ( parse_declaration_specifiers() ) {
 
-    int parse_declarator();
+    declaration_t declaration;
+    int parse_declarator( declaration_t* );
 
-    parse_declarator( declaration ) || parse_direct_abstract_declarator();
+    if ( parse_declarator( &declaration ) )
+      add_declaration_to_identifier_tree( D_PARAM, declaration.identifier );
+    else
+      parse_direct_abstract_declarator();
 
     return 1;
   }
@@ -465,17 +513,6 @@ int parse_parameter_type_list() {
   return 0;
 }
 
-int parse_direct_declarator_brackets() {
-
-  if ( accept_token( T_BRACKET_L ) ) {
-    // Discard everything inside brackets
-    discard_bracket_until_char( ']' );
-    return 1;
-  }
-
-  return 0;
-}
-
 // From what I can tell, this production only exists in C to support old
 // versions of the C language:
 // https://stackoverflow.com/questions/18202232/c-function-with-parameter-without-type-indicator-still-works
@@ -494,16 +531,16 @@ int parse_direct_declarator_brackets() {
 //  : ',' identifier_list
 //  | empty
 //
-int parse_identifier_list( decltype_t declType ) {
+int parse_identifier_list() {
 
   token_t *token = accept_token( T_IDENTIFIER );
 
   if ( token ) {
 
-    add_declaration_to_identifier_tree( declType, token->text );
+    add_declaration_to_identifier_tree( D_PARAM, token->text );
 
     if ( accept_token( T_COMMA ) )
-      parse_identifier_list( declType );
+      parse_identifier_list();
 
     return 1;
   }
@@ -511,15 +548,26 @@ int parse_identifier_list( decltype_t declType ) {
   return 0;
 }
 
-int parse_direct_declarator_parens( decltype_t declType ) {
+int parse_direct_declarator_parens() {
 
   if ( accept_token( T_PAREN_L ) ) {
 
     if ( accept_token( T_PAREN_R ) )
       return 1;
 
-    if ( parse_parameter_type_list( declType ) || parse_identifier_list( declType ) )
+    if ( parse_parameter_type_list() || parse_identifier_list() )
       return 1;
+  }
+
+  return 0;
+}
+
+int parse_direct_declarator_brackets() {
+
+  if ( accept_token( T_BRACKET_L ) ) {
+    // Discard everything inside brackets
+    discard_bracket_until_char( ']' );
+    return 1;
   }
 
   return 0;
@@ -533,20 +581,26 @@ int parse_direct_declarator_parens( decltype_t declType ) {
 //  | direct_declarator '(' parameter_type_list ')'
 //  | direct_declarator '(' identifier_list ')'
 //  | direct_declarator '(' ')'
-int parse_direct_declarator( decltype_t declType ) {
+int parse_direct_declarator( declaration_t *declaration ) {
 
   // Parenthesized identifier
   if ( accept_token( T_PAREN_L ) ) {
-    int parse_declarator( decltype_t );
-    return parse_declarator( declType ) && accept_token( T_PAREN_R );
+    int parse_declarator( declaration_t* );
+    return parse_declarator( declaration ) && accept_token( T_PAREN_R );
   }
 
   token_t *token = accept_token( T_IDENTIFIER );
 
   if ( token ) {
 
-    add_declaration_to_identifier_tree( declType, token->text );
-    parse_direct_declarator_brackets() || parse_direct_declarator_parens( D_PARAM );
+    strncpy( declaration->identifier, token->text, MAX_TOKEN_LEN );
+    declaration->identifier[ MAX_TOKEN_LEN ] = '\0';
+    declaration->type = D_VAR;
+
+    if ( !parse_direct_declarator_brackets() ) {
+      if ( parse_direct_declarator_parens() )
+        declaration->type = D_FUNC_DECL;
+    }
 
     return 1;
   }
@@ -574,11 +628,11 @@ int parse_pointer() {
 // declarator
 //  : pointer direct_declarator
 //  | direct_declarator
-int parse_declarator( decltype_t declType ) {
+int parse_declarator( declaration_t *declaration ) {
 
   parse_pointer();
 
-  if ( parse_direct_declarator( declType ) )
+  if ( parse_direct_declarator( declaration ) )
     return 1;
 
   return 0;
@@ -595,7 +649,9 @@ int parse_declarator( decltype_t declType ) {
 //
 int parse_init_declarator() {
 
-  if ( parse_declarator( D_VAR ) ) {
+  declaration_t declaration;
+
+  if ( parse_declarator( &declaration ) ) {
 
     // Discard initializer
     if ( accept_token( T_SINGLE_EQUALS ) ) {
@@ -614,6 +670,9 @@ int parse_init_declarator() {
         next_token();
       }
     }
+
+    if ( peek_token( T_COMMA ) || peek_token( T_SEMICOLON ) )
+      add_declaration_to_identifier_tree( declaration.type, declaration.identifier );
 
     return 1;
   }
@@ -679,6 +738,9 @@ int parse_declaration_specifiers() {
   return 0;
 }
 
+/**
+ * Variable declarations.
+ */
 int parse_declaration() {
 
   if ( parse_declaration_specifiers() ) {
@@ -691,6 +753,9 @@ int parse_declaration() {
   return 0;
 }
 
+/**
+ * C89-style function parameter type declarations.
+ */
 int parse_declaration_list() {
 
   if ( parse_declaration() ) {
@@ -715,11 +780,16 @@ int parse_function_definition() {
   // declaration specifiers are optional
   parse_declaration_specifiers();
 
-  if ( parse_declarator( D_FUNC ) ) {
+  declaration_t declaration;
+
+  if ( parse_declarator( &declaration ) ) {
     // C89-style function parameter type declarations
     parse_declaration_list();
-    if ( parse_compound_statement() )
+    if ( parse_compound_statement() && declaration.type == D_FUNC_DECL ) {
+      declaration.type = D_FUNC_DEF;
+      add_declaration_to_identifier_tree( declaration.type, declaration.identifier );
       return 1;
+    }
   }
 
   return 0;
@@ -736,23 +806,24 @@ void parse_translation_unit() {
 
     save_backtrack_point();
 
-    if ( !parse_function_definition() ) {
+    if ( parse_function_definition() ) {
 
-      printf( "Not a function definition\n" );
+      //printf( "Found function definition\n" );
+    }
+    else {
+
+      //printf( "Not a function definition\n" );
       backtrack();
 
-      if ( !parse_declaration() ) {
-        printf( "Not a declaration\n" );
+      if ( parse_declaration() ) {
+        //printf( "Found declaration\n" );
+      }
+      else {
+        //printf( "Not a declaration\n" );
         backtrack();
         next_token();
         save_backtrack_point();
       }
-      else {
-        printf( "Found declaration\n" );
-      }
-    }
-    else {
-      printf( "Found function definition\n" );
     }
   }
 }
@@ -869,7 +940,7 @@ int main( int argc, char *argv[] ) {
   }
 
   parse_translation_unit();
-  print_tree( tree, keyLength );
+  print_tree( &tree, keyLength );
 
   return 0;
 }
